@@ -12,6 +12,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -49,8 +50,23 @@
             </Grid>
         </GroupBox>
 
+        <!-- Custom Instructions -->
+        <GroupBox Header="Custom AI Instructions" Grid.Row="2" Margin="0,0,0,20" Padding="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="CustomInstructionsBox" Grid.Column="0" Height="60" 
+                         AcceptsReturn="True" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" 
+                         Padding="5" Margin="0,0,10,0"
+                         ToolTip="Add extra instructions like 'Extract name from below the img' or 'Rename based on title'"/>
+                <Button Content="Clear" Click="ClearInstructions_Click" Grid.Column="1" VerticalAlignment="Top" Padding="10,5"/>
+            </Grid>
+        </GroupBox>
+
         <!-- Image List -->
-        <DataGrid x:Name="ImagesGrid" Grid.Row="2" AutoGenerateColumns="False" IsReadOnly="True" 
+        <DataGrid x:Name="ImagesGrid" Grid.Row="3" AutoGenerateColumns="False" IsReadOnly="True" 
                   CanUserAddRows="False" BorderThickness="1" BorderBrush="#DDDDDD">
             <DataGrid.Resources>
                 <Style TargetType="DataGridCell">
@@ -88,10 +104,13 @@
         </DataGrid>
 
         <!-- Actions -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-            <TextBlock x:Name="StatusText" VerticalAlignment="Center" Margin="0,0,20,0" Foreground="Gray" FontSize="12"/>
-            <ProgressBar x:Name="ProgressBar" Width="200" Height="25" Margin="0,0,20,0" Visibility="Collapsed"/>
-            <Button x:Name="ProcessButton" Content="Start Renaming" Click="Process_Click" Padding="30,10" IsEnabled="False" Background="#007ACC" Foreground="White" FontWeight="Bold"/>
-        </StackPanel>
+        <Grid Grid.Row="4" Margin="0,20,0,0">
+            <Button Content="Clear" HorizontalAlignment="Left" Click="ClearList_Click" Padding="20,10"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock x:Name="StatusText" VerticalAlignment="Center" Margin="0,0,20,0" Foreground="Gray" FontSize="12"/>
+                <ProgressBar x:Name="ProgressBar" Width="200" Height="25" Margin="0,0,20,0" Visibility="Collapsed"/>
+                <Button x:Name="ProcessButton" Content="Start Renaming" Click="Process_Click" Padding="30,10" IsEnabled="False" Background="#007ACC" Foreground="White" FontWeight="Bold"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

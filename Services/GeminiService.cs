@@ -21,7 +21,7 @@ namespace ImageAIRenamer.Services
             _httpClient = new HttpClient();
         }
 
-        public async Task<string> GenerateTitleAsync(string imagePath)
+        public async Task<string> GenerateTitleAsync(string imagePath, string? customInstructions = null)
         {
             if (_apiKeys.Length == 0) throw new Exception("No API keys provided.");
 
@@ -33,7 +33,7 @@ namespace ImageAIRenamer.Services
                 string apiKey = _apiKeys[_currentKeyIndex];
                 try
                 {
-                    return await CallApiAsync(apiKey, imagePath);
+                    return await CallApiAsync(apiKey, imagePath, customInstructions);
                 }
                 catch (Exception ex)
                 {
@@ -54,13 +54,19 @@ namespace ImageAIRenamer.Services
             throw new Exception("Failed to generate title.");
         }
 
-        private async Task<string> CallApiAsync(string apiKey, string imagePath)
+        private async Task<string> CallApiAsync(string apiKey, string imagePath, string? customInstructions)
         {
             var bytes = await File.ReadAllBytesAsync(imagePath);
             var base64 = Convert.ToBase64String(bytes);
             var mimeType = GetMimeType(Path.GetExtension(imagePath));
 
             var url = $"https://generativelanguage.googleapis.com/v1beta/models/{Model}:generateContent?key={apiKey}";
+
+            var finalPrompt = PromptText;
+            if (!string.IsNullOrWhiteSpace(customInstructions))
+            {
+                finalPrompt += $"\n\nAdditional User Instructions: {customInstructions}";
+            }
 
             var requestBody = new
             {
@@ -70,7 +76,7 @@ namespace ImageAIRenamer.Services
                     {
                         parts = new object[]
                         {
-                            new { text = PromptText },
+                            new { text = finalPrompt },
                             new
                             {
                                 inline_data = new

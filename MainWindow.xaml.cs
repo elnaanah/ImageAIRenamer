@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -20,6 +21,7 @@ namespace ImageAIRenamer
         {
             InitializeComponent();
             ImagesGrid.ItemsSource = Images;
+            LoadApiKeysFromFile();
         }
 
         private void BrowseSource_Click(object sender, RoutedEventArgs e)
@@ -65,6 +67,64 @@ namespace ImageAIRenamer
             CheckReady();
         }
 
+        private void ClearInstructions_Click(object sender, RoutedEventArgs e)
+        {
+            CustomInstructionsBox.Clear();
+        }
+
+        private void ClearList_Click(object sender, RoutedEventArgs e)
+        {
+            Images.Clear();
+            SourceFolderBox.Text = string.Empty;
+            OutputFolderBox.Text = string.Empty;
+            CustomInstructionsBox.Clear();
+            StatusText.Text = string.Empty;
+            ProgressBar.Value = 0;
+            ProgressBar.Visibility = Visibility.Collapsed;
+            CheckReady();
+        }
+
+        private string GetConfigFilePath()
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var folder = Path.Combine(appData, "ImageAIRenamer");
+            try
+            {
+                Directory.CreateDirectory(folder);
+            }
+            catch
+            {
+            }
+            return Path.Combine(folder, "apikeys.txt");
+        }
+
+        private void SaveApiKeysToFile()
+        {
+            try
+            {
+                var path = GetConfigFilePath();
+                File.WriteAllText(path, ApiKeysBox.Text ?? string.Empty);
+            }
+            catch
+            {
+            }
+        }
+
+        private void LoadApiKeysFromFile()
+        {
+            try
+            {
+                var path = GetConfigFilePath();
+                if (File.Exists(path))
+                {
+                    ApiKeysBox.Text = File.ReadAllText(path);
+                }
+            }
+            catch
+            {
+            }
+        }
+
         private void CheckReady()
         {
             ProcessButton.IsEnabled = Images.Count > 0 && !string.IsNullOrWhiteSpace(OutputFolderBox.Text);
@@ -78,6 +138,8 @@ namespace ImageAIRenamer
                 MessageBox.Show("Please enter at least one Gemini API Key.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
+
+            SaveApiKeysToFile();
 
             var outputFolder = OutputFolderBox.Text;
             if (!Directory.Exists(outputFolder))
@@ -93,6 +155,7 @@ namespace ImageAIRenamer
 
             var service = new GeminiService(apiKeys);
             var usedNames = new Dictionary<string, int>();
+            var customInstructions = CustomInstructionsBox.Text;
 
             foreach (var img in Images)
             {
@@ -100,7 +163,7 @@ namespace ImageAIRenamer
                 
                 try
                 {
-                    var title = await service.GenerateTitleAsync(img.FilePath);
+                    var title = await service.GenerateTitleAsync(img.FilePath, customInstructions);
                     var sanitized = SanitizeFilename(title);
                     
                     if (string.IsNullOrWhiteSpace(sanitized)) sanitized = "Image";
@@ -152,6 +215,12 @@ namespace ImageAIRenamer
             ProcessButton.IsEnabled = true;
             StatusText.Text = "Processing Complete!";
             MessageBox.Show("Processing Complete!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            SaveApiKeysToFile();
+            base.OnClosed(e);
         }
 
         private string SanitizeFilename(string name)
