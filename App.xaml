@@ -6,7 +6,6 @@
     <Application.Resources>
         <SolidColorBrush x:Key="PrimaryColor" Color="#0078D4"/>
         <SolidColorBrush x:Key="PrimaryHoverColor" Color="#106EBE"/>
-        <SolidColorBrush x:Key="AccentColor" Color="#FF6B35"/>
         <SolidColorBrush x:Key="BackgroundColor" Color="#F9FAFB"/>
         <SolidColorBrush x:Key="SurfaceColor" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="BorderColor" Color="#E1E5E9"/>

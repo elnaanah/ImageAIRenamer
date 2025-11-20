@@ -67,11 +67,6 @@ namespace ImageAIRenamer
             CheckReady();
         }
 
-        private void ClearInstructions_Click(object sender, RoutedEventArgs e)
-        {
-            CustomInstructionsBox.Clear();
-        }
-
         private void ClearList_Click(object sender, RoutedEventArgs e)
         {
             Images.Clear();
