@@ -55,7 +55,7 @@ $RECYCLE.BIN/
 *.pdb
 *.ilk
 *.obj
-*.exe
+# *.exe
 *.dll
 *.db
 *.opendb
