@@ -13,7 +13,7 @@ namespace ImageAIRenamer.Services
         private readonly HttpClient _httpClient;
         private const string Model = "gemini-2.0-flash"; 
         
-        private const string PromptText = "Extract only the main title or name from this image. Return ONLY the title with no descriptions, explanations, or extra text. If there is readable text like a game name or service name use it exactly. If no clear text exists, generate a short appropriate title. Return only the title.";
+        private const string PromptText = "Extract only the main title or name from this image. Return ONLY the title with no descriptions, explanations, or extra text. If there is readable text like a service name use it exactly. If no clear text exists, generate a short appropriate title. Return only the title.";
 
         public GeminiService(string[] apiKeys)
         {
