@@ -7,6 +7,7 @@ namespace ImageAIRenamer.Models
     {
         private string _status = "Pending";
         private string _newName = "";
+        private bool _isSelected = true;
         
         public required string FilePath { get; set; }
         public required string OriginalName { get; set; }
@@ -21,6 +22,12 @@ namespace ImageAIRenamer.Models
         {
             get => _status;
             set { _status = value; OnPropertyChanged(); }
+        }
+
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set { _isSelected = value; OnPropertyChanged(); }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
