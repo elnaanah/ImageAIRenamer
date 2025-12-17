@@ -32,6 +32,10 @@ public partial class ImageSearchViewModel : ViewModelBase
         _geminiService = geminiService;
         _fileService = fileService;
         _configurationService = configurationService;
+        
+        // Initialize SearchCommand once
+        _searchCommand = new AsyncRelayCommand(SearchImagesAsync, () => IsSearchEnabled);
+        
         _ = LoadApiKeysAsync();
     }
 
@@ -68,6 +72,13 @@ public partial class ImageSearchViewModel : ViewModelBase
     [ObservableProperty]
     private bool isSearchEnabled = false;
 
+    private readonly IAsyncRelayCommand _searchCommand;
+
+    /// <summary>
+    /// Command to search images
+    /// </summary>
+    public IAsyncRelayCommand SearchCommand => _searchCommand;
+
     /// <summary>
     /// Command to browse for source folder
     /// </summary>
@@ -77,6 +88,7 @@ public partial class ImageSearchViewModel : ViewModelBase
         if (dialog.ShowDialog() == true)
         {
             SourceFolder = dialog.FolderName;
+            // Load images asynchronously - CheckReady() is called after loading completes
             _ = LoadImagesAsync(SourceFolder);
         }
     });
@@ -119,11 +131,6 @@ public partial class ImageSearchViewModel : ViewModelBase
     });
 
     /// <summary>
-    /// Command to search images
-    /// </summary>
-    public IAsyncRelayCommand SearchCommand => new AsyncRelayCommand(SearchImagesAsync, () => IsSearchEnabled);
-
-    /// <summary>
     /// Command to copy selected images
     /// </summary>
     public IRelayCommand CopySelectedCommand => new RelayCommand(() => _ = CopySelectedImagesAsync());
@@ -154,6 +161,23 @@ public partial class ImageSearchViewModel : ViewModelBase
         CheckReady();
     }
 
+    /// <summary>
+    /// Handles output folder changes
+    /// </summary>
+    partial void OnOutputFolderChanged(string value)
+    {
+        CheckReady();
+    }
+
+    /// <summary>
+    /// Handles source folder changes
+    /// </summary>
+    partial void OnSourceFolderChanged(string value)
+    {
+        // SourceFolder changes trigger LoadImagesAsync which calls CheckReady() after loading
+        // No need to check here as images haven't loaded yet
+    }
+
     private async Task LoadApiKeysAsync()
     {
         try
@@ -169,23 +193,35 @@ public partial class ImageSearchViewModel : ViewModelBase
 
     private async Task LoadImagesAsync(string folder)
     {
-        MatchedImages.Clear();
-        var extensions = _configurationService.GetSupportedExtensions();
-        var files = await _fileService.LoadImageFilesAsync(folder, extensions);
-
-        foreach (var file in files)
+        try
         {
-            MatchedImages.Add(new ImageItem
-            {
-                FilePath = file,
-                OriginalName = Path.GetFileNameWithoutExtension(file),
-                Status = "في الانتظار",
-                IsSelected = true
-            });
-        }
+            MatchedImages.Clear();
+            var extensions = _configurationService.GetSupportedExtensions();
+            var files = await _fileService.LoadImageFilesAsync(folder, extensions);
 
-        StatusText = $"تم تحميل {MatchedImages.Count} صورة.";
-        CheckReady();
+            foreach (var file in files)
+            {
+                MatchedImages.Add(new ImageItem
+                {
+                    FilePath = file,
+                    OriginalName = Path.GetFileNameWithoutExtension(file),
+                    Status = "في الانتظار",
+                    IsSelected = true
+                });
+            }
+
+            StatusText = $"تم تحميل {MatchedImages.Count} صورة.";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"حدث خطأ أثناء تحميل الصور: {ex.Message}";
+            MatchedImages.Clear();
+        }
+        finally
+        {
+            // Always check ready state after loading attempt
+            CheckReady();
+        }
     }
 
     private void CheckReady()
@@ -193,7 +229,7 @@ public partial class ImageSearchViewModel : ViewModelBase
         IsSearchEnabled = MatchedImages.Count > 0
             && !string.IsNullOrWhiteSpace(OutputFolder)
             && !string.IsNullOrWhiteSpace(SearchDescription);
-        SearchCommand.NotifyCanExecuteChanged();
+        _searchCommand.NotifyCanExecuteChanged();
     }
 
     private async Task SearchImagesAsync()
@@ -233,7 +269,7 @@ public partial class ImageSearchViewModel : ViewModelBase
         }
 
         IsSearchEnabled = false;
-        SearchCommand.NotifyCanExecuteChanged();
+        _searchCommand.NotifyCanExecuteChanged();
         IsProgressVisible = true;
         ProgressMaximum = MatchedImages.Count;
         ProgressValue = 0;
@@ -316,7 +352,7 @@ public partial class ImageSearchViewModel : ViewModelBase
         {
             IsProgressVisible = false;
             IsSearchEnabled = true;
-            SearchCommand.NotifyCanExecuteChanged();
+            _searchCommand.NotifyCanExecuteChanged();
             StatusText = $"اكتمل البحث! تم العثور على {matchedCount} صورة مطابقة من أصل {MatchedImages.Count}.";
             ProgressText = $"مطابق: {matchedCount} / {MatchedImages.Count}";
         }

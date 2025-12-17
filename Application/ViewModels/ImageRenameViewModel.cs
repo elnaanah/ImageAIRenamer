@@ -31,6 +31,10 @@ public partial class ImageRenameViewModel : ViewModelBase
         _geminiService = geminiService;
         _fileService = fileService;
         _configurationService = configurationService;
+        
+        // Initialize ProcessCommand once
+        _processCommand = new AsyncRelayCommand(ProcessImagesAsync, () => IsProcessEnabled);
+        
         _ = LoadApiKeysAsync();
     }
 
@@ -63,6 +67,13 @@ public partial class ImageRenameViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool isProcessEnabled = false;
+
+    private readonly IAsyncRelayCommand _processCommand;
+
+    /// <summary>
+    /// Command to process images
+    /// </summary>
+    public IAsyncRelayCommand ProcessCommand => _processCommand;
 
     /// <summary>
     /// Command to browse for source folder
@@ -114,11 +125,6 @@ public partial class ImageRenameViewModel : ViewModelBase
     });
 
     /// <summary>
-    /// Command to process images
-    /// </summary>
-    public IAsyncRelayCommand ProcessCommand => new AsyncRelayCommand(ProcessImagesAsync, () => IsProcessEnabled);
-
-    /// <summary>
     /// Command to open an image
     /// </summary>
     public IRelayCommand<ImageItem> OpenImageCommand => new RelayCommand<ImageItem>(item =>
@@ -149,30 +155,59 @@ public partial class ImageRenameViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Handles output folder changes
+    /// </summary>
+    partial void OnOutputFolderChanged(string value)
+    {
+        CheckReady();
+    }
+
+    /// <summary>
+    /// Handles source folder changes
+    /// </summary>
+    partial void OnSourceFolderChanged(string value)
+    {
+        // SourceFolder changes trigger LoadImagesAsync which calls CheckReady() after loading
+        // No need to check here as images haven't loaded yet
+    }
+
     private async Task LoadImagesAsync(string folder)
     {
-        Images.Clear();
-        var extensions = _configurationService.GetSupportedExtensions();
-        var files = await _fileService.LoadImageFilesAsync(folder, extensions);
-
-        foreach (var file in files)
+        try
         {
-            Images.Add(new ImageItem
-            {
-                FilePath = file,
-                OriginalName = Path.GetFileNameWithoutExtension(file),
-                Status = "في الانتظار"
-            });
-        }
+            Images.Clear();
+            var extensions = _configurationService.GetSupportedExtensions();
+            var files = await _fileService.LoadImageFilesAsync(folder, extensions);
 
-        StatusText = $"تم تحميل {Images.Count} صورة.";
-        CheckReady();
+            foreach (var file in files)
+            {
+                Images.Add(new ImageItem
+                {
+                    FilePath = file,
+                    OriginalName = Path.GetFileNameWithoutExtension(file),
+                    Status = "في الانتظار"
+                });
+            }
+
+            StatusText = $"تم تحميل {Images.Count} صورة.";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"حدث خطأ أثناء تحميل الصور: {ex.Message}";
+            Images.Clear();
+        }
+        finally
+        {
+            // Always check ready state after loading attempt
+            CheckReady();
+        }
     }
 
     private void CheckReady()
     {
         IsProcessEnabled = Images.Count > 0 && !string.IsNullOrWhiteSpace(OutputFolder);
-        ProcessCommand.NotifyCanExecuteChanged();
+        _processCommand.NotifyCanExecuteChanged();
     }
 
     private async Task ProcessImagesAsync()
@@ -206,7 +241,7 @@ public partial class ImageRenameViewModel : ViewModelBase
         }
 
         IsProcessEnabled = false;
-        ProcessCommand.NotifyCanExecuteChanged();
+        _processCommand.NotifyCanExecuteChanged();
         IsProgressVisible = true;
         ProgressMaximum = Images.Count;
         ProgressValue = 0;
@@ -272,7 +307,7 @@ public partial class ImageRenameViewModel : ViewModelBase
         {
             IsProgressVisible = false;
             IsProcessEnabled = true;
-            ProcessCommand.NotifyCanExecuteChanged();
+            _processCommand.NotifyCanExecuteChanged();
             StatusText = "اكتملت المعالجة!";
             ShowInfo("اكتملت المعالجة!", "نجح");
         }

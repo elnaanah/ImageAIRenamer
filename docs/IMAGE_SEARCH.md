@@ -196,3 +196,5 @@ Respond with JSON:
 
 **العودة إلى**: [الصفحة الرئيسية](README.md) | [ميزة إعادة التسمية](IMAGE_RENAME.md)
 
+
+

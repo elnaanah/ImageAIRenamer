@@ -8,14 +8,14 @@ namespace ImageAIRenamer;
 /// <summary>
 /// Interaction logic for MainWindow.xaml
 /// </summary>
-public partial class MainWindow : Window
-{
+    public partial class MainWindow : Window
+    {
     private readonly MainViewModel _viewModel;
     private readonly NavigationService _navigationService;
 
     public MainWindow(MainViewModel viewModel, INavigationService navigationService)
-    {
-        InitializeComponent();
+        {
+            InitializeComponent();
         _viewModel = viewModel;
         _navigationService = navigationService as NavigationService ?? throw new ArgumentException("NavigationService must be of type NavigationService");
         

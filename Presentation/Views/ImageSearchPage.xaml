@@ -107,7 +107,7 @@
                         <TextBlock Margin="0,4,0,8" Foreground="{StaticResource TextSecondaryColor}" FontSize="12"
                                    Text="{Binding ProgressText}"/>
                         <Button Content="🔍 بدء البحث" Command="{Binding SearchCommand}" 
-                                Style="{StaticResource ModernButtonStyle}" IsEnabled="{Binding IsSearchEnabled}" Margin="0,18,0,0"/>
+                                Style="{StaticResource ModernButtonStyle}" Margin="0,18,0,0"/>
                     </StackPanel>
                 </Border>
             </StackPanel>
