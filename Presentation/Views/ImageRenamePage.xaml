@@ -6,6 +6,7 @@
       xmlns:domain="clr-namespace:ImageAIRenamer.Domain.Entities"
       mc:Ignorable="d"
       Title="إعادة تسمية الصور"
+      FlowDirection="RightToLeft"
       Background="{StaticResource BackgroundColor}">
     <Grid Margin="25">
         <Grid.RowDefinitions>
@@ -17,7 +18,7 @@
         <Button Content="🏠 الصفحة الرئيسية" 
                 Command="{Binding BackToHomeCommand}"
                 Style="{StaticResource SecondaryButtonStyle}"
-                HorizontalAlignment="Left"
+                HorizontalAlignment="Right"
                 Margin="0,0,0,15"/>
 
         <Grid Grid.Row="1">
@@ -144,7 +145,7 @@
                             <Setter Property="Background" Value="#F8F9FA"/>
                             <Setter Property="Foreground" Value="{StaticResource TextPrimaryColor}"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
-                            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Right"/>
                             <Setter Property="Padding" Value="12,10"/>
                             <Setter Property="BorderThickness" Value="0,0,0,1"/>
                             <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
@@ -170,6 +171,7 @@
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextWrapping" Value="NoWrap"/>
                                     <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                    <Setter Property="TextAlignment" Value="Right"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
@@ -178,6 +180,7 @@
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextWrapping" Value="NoWrap"/>
                                     <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                    <Setter Property="TextAlignment" Value="Right"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
@@ -185,6 +188,7 @@
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="FontWeight" Value="Medium"/>
+                                    <Setter Property="TextAlignment" Value="Right"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding Status}" Value="تم">
                                             <Setter Property="Foreground" Value="{StaticResource SuccessColor}"/>

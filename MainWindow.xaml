@@ -8,6 +8,7 @@
         Title="Image AI Renamer - إعادة تسمية الصور بالذكاء الاصطناعي" Height="800" Width="1200"
         FontFamily="Segoe UI" FontSize="14"
         WindowStartupLocation="CenterScreen"
+        FlowDirection="RightToLeft"
         Background="{StaticResource BackgroundColor}">
     <Frame x:Name="MainFrame" NavigationUIVisibility="Hidden"/>
 </Window>
