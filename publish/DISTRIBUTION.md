@@ -84,3 +84,4 @@ ImageAIRenamer.exe → ImageAIRenamer.rar (أو .zip)
 ---
 
 **ملاحظة**: هذا الملف تم إنشاؤه من المشروع المفتوح المصدر Image AI Renamer
+
