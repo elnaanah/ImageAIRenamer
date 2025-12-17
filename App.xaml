@@ -1,8 +1,8 @@
-﻿<Application x:Class="ImageAIRenamer.App"
+<Application x:Class="ImageAIRenamer.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:ImageAIRenamer"
-             StartupUri="MainWindow.xaml">
+             DispatcherUnhandledException="Application_DispatcherUnhandledException">
     <Application.Resources>
         <SolidColorBrush x:Key="PrimaryColor" Color="#0078D4"/>
         <SolidColorBrush x:Key="PrimaryHoverColor" Color="#106EBE"/>

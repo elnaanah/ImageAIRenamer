@@ -1,4 +1,4 @@
-<Page x:Class="ImageAIRenamer.Pages.WelcomePage"
+<Page x:Class="ImageAIRenamer.Presentation.Views.WelcomePage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -36,8 +36,11 @@
                                    Foreground="{StaticResource PrimaryColor}"
                                    FontWeight="SemiBold"
                                    Margin="20,0,0,10"
-                                   Cursor="Hand"
-                                   MouseLeftButtonUp="OpenAISudio_Click"/>
+                                   Cursor="Hand">
+                            <TextBlock.InputBindings>
+                                <MouseBinding Gesture="LeftClick" Command="{Binding OpenAiStudioCommand}"/>
+                            </TextBlock.InputBindings>
+                        </TextBlock>
                         <TextBlock Text="• سجل الدخول باستخدام حساب Google الخاص بك" 
                                    Foreground="{StaticResource TextPrimaryColor}"
                                    Margin="0,0,0,5"/>
@@ -98,8 +101,10 @@
                         BorderThickness="2"
                         CornerRadius="12"
                         Padding="30"
-                        Cursor="Hand"
-                        MouseLeftButtonUp="NavigateToSearch_Click">
+                        Cursor="Hand">
+                    <Border.InputBindings>
+                        <MouseBinding Gesture="LeftClick" Command="{Binding NavigateToSearchCommand}"/>
+                    </Border.InputBindings>
                     <StackPanel>
                         <TextBlock Text="🔍" 
                                    FontSize="48" 
@@ -141,8 +146,10 @@
                         BorderThickness="2"
                         CornerRadius="12"
                         Padding="30"
-                        Cursor="Hand"
-                        MouseLeftButtonUp="NavigateToRename_Click">
+                        Cursor="Hand">
+                    <Border.InputBindings>
+                        <MouseBinding Gesture="LeftClick" Command="{Binding NavigateToRenameCommand}"/>
+                    </Border.InputBindings>
                     <StackPanel>
                         <TextBlock Text="✏️" 
                                    FontSize="48" 

@@ -124,22 +124,142 @@ Copy-Item "publish\ImageAIRenamer.exe" -Destination "Release\" -Force
 
 ---
 
+## بنية المشروع (Architecture)
+
+تم إعادة هيكلة المشروع وفق نمط **MVVM (Model-View-ViewModel)** مع فصل واضح للطبقات:
+
+### هيكل المشروع
+
+```
+ImageAIRenamer/
+├── Presentation/                    # طبقة العرض (UI Layer)
+│   └── Views/                      # ملفات XAML فقط (بدون منطق)
+│       ├── WelcomePage.xaml
+│       ├── ImageSearchPage.xaml
+│       └── ImageRenamePage.xaml
+│
+├── Application/                     # طبقة التطبيق (Application Layer)
+│   ├── ViewModels/                 # نماذج العرض (ViewModels)
+│   │   ├── WelcomeViewModel.cs
+│   │   ├── ImageSearchViewModel.cs
+│   │   ├── ImageRenameViewModel.cs
+│   │   └── MainViewModel.cs
+│   └── Common/
+│       └── ViewModelBase.cs        # قاعدة مشتركة للـ ViewModels
+│
+├── Domain/                          # طبقة النطاق (Domain Layer)
+│   ├── Entities/                   # كيانات العمل
+│   │   ├── ImageItem.cs
+│   │   ├── SearchResult.cs
+│   │   └── AppSettings.cs
+│   └── Interfaces/                 # واجهات الخدمات
+│       ├── IGeminiService.cs
+│       ├── IConfigurationService.cs
+│       ├── IFileService.cs
+│       └── INavigationService.cs
+│
+├── Infrastructure/                  # طبقة البنية التحتية (Infrastructure Layer)
+│   ├── Services/                   # تطبيقات الخدمات
+│   │   ├── GeminiService.cs
+│   │   ├── FileService.cs
+│   │   └── NavigationService.cs
+│   ├── Configuration/              # إدارة الإعدادات
+│   │   └── ConfigurationService.cs
+│   ├── Logging/                    # نظام السجلات
+│   │   └── LoggerExtensions.cs
+│   └── DependencyInjection/        # إعداد Dependency Injection
+│       └── ServiceCollectionExtensions.cs
+│
+├── App.xaml & App.xaml.cs          # نقطة دخول التطبيق
+├── MainWindow.xaml & MainWindow.xaml.cs
+├── appsettings.json                # ملف الإعدادات
+└── ImageAIRenamer.csproj           # ملف المشروع
+```
+
+### شرح الطبقات
+
+#### 1. Presentation Layer (طبقة العرض)
+- **الوظيفة**: واجهة المستخدم فقط
+- **المحتويات**: ملفات XAML مع كود خلفي بسيط (Code-Behind)
+- **المسؤولية**: عرض البيانات وربطها مع ViewModels
+- **لا يحتوي على**: منطق العمل أو استدعاءات API مباشرة
+
+#### 2. Application Layer (طبقة التطبيق)
+- **الوظيفة**: إدارة منطق العرض والتفاعل مع المستخدم
+- **المحتويات**: ViewModels التي تحتوي على Commands و Properties
+- **المسؤولية**: 
+  - معالجة أحداث المستخدم
+  - ربط البيانات مع العرض
+  - تنسيق العمل بين الخدمات
+- **الميزات**:
+  - استخدام `CommunityToolkit.Mvvm` للـ Commands
+  - الوراثة من `ViewModelBase` للميزات المشتركة
+
+#### 3. Domain Layer (طبقة النطاق)
+- **الوظيفة**: تعريف الكيانات والواجهات الأساسية
+- **المحتويات**: 
+  - Entities: نماذج البيانات الأساسية
+  - Interfaces: عقود الخدمات (Service Contracts)
+- **المسؤولية**: تحديد ما يحتاجه التطبيق دون الاعتماد على التطبيق
+
+#### 4. Infrastructure Layer (طبقة البنية التحتية)
+- **الوظيفة**: تنفيذ التفاصيل التقنية
+- **المحتويات**:
+  - Services: تنفيذ الخدمات (Gemini API، File Operations)
+  - Configuration: قراءة وإدارة الإعدادات
+  - Logging: نظام السجلات (Serilog)
+  - DependencyInjection: إعداد الحاويات
+- **المسؤولية**: التكامل مع الأنظمة الخارجية والمكتبات
+
+### Dependency Injection (حقن الاعتماديات)
+
+يستخدم المشروع `Microsoft.Extensions.DependencyInjection` لتنسيق جميع الخدمات:
+
+- **التسجيل**: يتم في `ServiceCollectionExtensions.AddApplicationServices()`
+- **الحقن**: يتم في Constructors
+- **الفوائد**:
+  - سهولة الاختبار (Testability)
+  - فصل الاهتمامات (Separation of Concerns)
+  - إدارة دورة الحياة (Lifecycle Management)
+
+### MVVM Pattern (نمط MVVM)
+
+- **Model**: الكيانات في `Domain/Entities`
+- **View**: ملفات XAML في `Presentation/Views`
+- **ViewModel**: في `Application/ViewModels`
+
+**التواصل**:
+- View → ViewModel: عبر Commands (ICommand)
+- ViewModel → View: عبر DataBinding و INotifyPropertyChanged
+- ViewModel → Services: عبر Dependency Injection
+
+### إعدادات التطبيق
+
+- **appsettings.json**: إعدادات عامة (نموذج Gemini، الامتدادات المدعومة)
+- **%LOCALAPPDATA%/ImageAIRenamer/apikeys.txt**: مفاتيح API (محفوظة بشكل منفصل)
+
+### نظام السجلات (Logging)
+
+s]- **المكتبة**: Serilog
+- **المكان**: `%LOCALAPPDATA%/ImageAIRenamer/logs/`
+- **المستويات**: Information, Warning, Error
+- **التدوير**: يومي مع الاحتفاظ بـ 30 يوم
+
+---
+
 ## الملفات المهمة
 
 ```
 ImageAIRenamer/
-├── MainWindow.xaml              # واجهة المستخدم
-├── MainWindow.xaml.cs           # منطق التطبيق
-├── Models/
-│   └── ImageItem.cs             # نموذج بيانات الصورة
-├── Services/
-│   └── GeminiService.cs         # خدمة الاتصال بـ Gemini API
-├── ImageAIRenamer.csproj        # ملف المشروع
-├── Public/
-│   └── app-icon.ico             # أيقونة التطبيق
-├── Release/
-│   └── ImageAIRenamer.exe       # الملف التنفيذي المستقل
-└── README.md                    # هذا الملف
+├── App.xaml & App.xaml.cs         # إعداد التطبيق و DI Container
+├── MainWindow.xaml & MainWindow.xaml.cs  # النافذة الرئيسية
+├── appsettings.json               # إعدادات التطبيق
+├── Presentation/Views/            # صفحات الواجهة
+├── Application/ViewModels/        # منطق العرض
+├── Domain/                        # الكيانات والواجهات
+├── Infrastructure/                # الخدمات والبنية التحتية
+├── Public/app-icon.ico            # أيقونة التطبيق
+└── README.md                      # هذا الملف
 ```
 
 ---
@@ -220,4 +340,31 @@ https://ai.google.dev/
 
 ---
 
-**آخر تحديث**: نوفمبر 2025
+---
+
+## التطوير والتوسع
+
+### إضافة خدمة جديدة
+
+1. **إنشاء Interface** في `Domain/Interfaces/`
+2. **إنشاء Implementation** في `Infrastructure/Services/`
+3. **التسجيل** في `ServiceCollectionExtensions.AddApplicationServices()`
+4. **الحقن** في ViewModel أو Service آخر
+
+### إضافة ViewModel جديد
+
+1. إنشاء Class في `Application/ViewModels/` يرث من `ViewModelBase`
+2. إضافة Commands باستخدام `IRelayCommand` أو `IAsyncRelayCommand`
+3. إضافة Properties باستخدام `[ObservableProperty]` من CommunityToolkit.Mvvm
+4. تسجيله في DI Container
+
+### إضافة صفحة جديدة
+
+1. إنشاء XAML في `Presentation/Views/`
+2. ربطها مع ViewModel عبر `DataContext`
+3. إضافة Navigation Command في NavigationService
+4. إنشاء ViewModel كما في الخطوات أعلاه
+
+---
+
+**آخر تحديث**: ديسمبر 2025
