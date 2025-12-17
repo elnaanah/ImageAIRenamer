@@ -143,7 +143,8 @@ ImageAIRenamer/
 └── docs/
     ├── README.md                   # هذا الملف
     ├── IMAGE_SEARCH.md             # توثيق ميزة البحث
-    └── IMAGE_RENAME.md             # توثيق ميزة إعادة التسمية
+    ├── IMAGE_RENAME.md             # توثيق ميزة إعادة التسمية
+    └── LOGO_DESIGN_PROMPTS.md      # Prompts لتصميم الشعارات والأيقونات
 ```
 
 ## الترخيص
