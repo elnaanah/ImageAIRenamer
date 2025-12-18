@@ -21,6 +21,12 @@
     <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
 
+  <!-- Exclude test project files -->
+  <ItemGroup>
+    <Compile Remove="ImageAIRenamer.Tests\**" />
+    <None Remove="ImageAIRenamer.Tests\**" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
