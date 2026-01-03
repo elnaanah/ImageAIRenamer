@@ -82,21 +82,22 @@ public class RenameWorkflowTests
     [Fact]
     public void ViewModel_WithRealFileService_InitializesCorrectly()
     {
-        // Arrange
         var navMock = MockServices.CreateNavigationService();
         var geminiMock = MockServices.CreateGeminiService();
         var configMock = MockServices.CreateConfigurationService();
-        var fileService = new FileService(); // Real implementation
+        var imageProcessingMock = MockServices.CreateImageProcessingService();
+        var loggerMock = MockServices.CreateLogger<ImageRenameViewModel>();
+        var fileService = new FileService();
 
-        // Act
         var viewModel = new ImageRenameViewModel(
             navMock.Object,
             geminiMock.Object,
             fileService,
-            configMock.Object
+            configMock.Object,
+            imageProcessingMock.Object,
+            loggerMock.Object
         );
 
-        // Assert
         Assert.NotNull(viewModel);
         Assert.Empty(viewModel.Images);
     }

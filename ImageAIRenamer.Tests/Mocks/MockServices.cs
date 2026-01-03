@@ -1,6 +1,7 @@
 using System.IO;
 using ImageAIRenamer.Domain.Entities;
 using ImageAIRenamer.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace ImageAIRenamer.Tests.Mocks;
@@ -124,6 +125,12 @@ public static class MockServices
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ProcessSearchResult { IsMatch = true, NewFileName = "matched.jpg", Status = "مطابق" });
 
+        return mock;
+    }
+
+    public static Mock<ILogger<T>> CreateLogger<T>()
+    {
+        var mock = new Mock<ILogger<T>>();
         return mock;
     }
 }

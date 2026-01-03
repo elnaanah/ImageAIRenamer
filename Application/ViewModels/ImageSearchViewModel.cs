@@ -140,7 +140,7 @@ public partial class ImageSearchViewModel : ImageProcessingViewModelBase
                 if (result.IsMatch)
                 {
                     matchedCount++;
-                    img.NewName = result.NewName;
+                    img.NewName = result.NewFileName ?? string.Empty;
                 }
                 else
                 {

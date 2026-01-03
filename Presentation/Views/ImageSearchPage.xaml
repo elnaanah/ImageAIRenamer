@@ -8,7 +8,7 @@
       Title="البحث عن الصور"
       FlowDirection="RightToLeft"
       Background="{StaticResource BackgroundColor}">
-    <Grid Margin="25">
+    <Grid Margin="40">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -19,18 +19,18 @@
                 Command="{Binding BackToHomeCommand}"
                 Style="{StaticResource SecondaryButtonStyle}"
                 HorizontalAlignment="Right"
-                Margin="0,0,0,15"/>
+                Margin="0,0,0,20"/>
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="450"/>
-                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="*" MaxWidth="600"/>
+                <ColumnDefinition Width="30"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0">
                 <!-- API Keys -->
-                <GroupBox Header="🔑 إعدادات API" Style="{StaticResource ModernGroupBoxStyle}">
+                <GroupBox Header="🔑 إعدادات API" Style="{StaticResource ModernGroupBoxStyle}" Margin="0,0,0,20">
                     <StackPanel>
                         <TextBlock Text="أدخل مفاتيح Gemini API (مفتاح واحد في كل سطر):" Margin="0,0,0,8" Foreground="{StaticResource TextPrimaryColor}" FontWeight="Medium"/>
                         <TextBox Height="70" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" 
@@ -41,7 +41,7 @@
                 </GroupBox>
 
                 <!-- Search Description -->
-                <GroupBox Header="🔍 وصف البحث" Style="{StaticResource ModernGroupBoxStyle}">
+                <GroupBox Header="🔍 وصف البحث" Style="{StaticResource ModernGroupBoxStyle}" Margin="0,0,0,20">
                     <StackPanel>
                         <TextBlock Text="صف ما تبحث عنه في الصور:" Margin="0,0,0,8" 
                                    Foreground="{StaticResource TextPrimaryColor}" FontWeight="Medium"/>
@@ -54,7 +54,7 @@
                 </GroupBox>
 
                 <!-- Folder Selection -->
-                <GroupBox Header="📁 اختيار المجلدات" Style="{StaticResource ModernGroupBoxStyle}">
+                <GroupBox Header="📁 اختيار المجلدات" Style="{StaticResource ModernGroupBoxStyle}" Margin="0,0,0,20">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -85,7 +85,7 @@
 
                 <!-- Actions -->
                 <Border Background="{StaticResource SurfaceColor}" BorderBrush="{StaticResource BorderColor}" BorderThickness="1"
-                        CornerRadius="6" Padding="18" Margin="0,5,0,0">
+                        CornerRadius="6" Padding="18" Margin="0,0,0,0">
                     <StackPanel>
                         <TextBlock Text="الحالة" Foreground="{StaticResource TextSecondaryColor}" FontSize="12" FontWeight="SemiBold"/>
                         <TextBlock Margin="0,4,0,8" Foreground="{StaticResource TextPrimaryColor}" FontSize="13"
@@ -115,7 +115,7 @@
                             <Button Content="🔍 بدء البحث" Command="{Binding SearchCommand}" 
                                     Style="{StaticResource ModernButtonStyle}" Grid.Column="0"/>
                             <Button Content="❌ إلغاء" Command="{Binding CancelCommand}" 
-                                    Style="{StaticResource SecondaryButtonStyle}" Grid.Column="2">
+                                    Grid.Column="2">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
                                         <Setter Property="Visibility" Value="Collapsed"/>

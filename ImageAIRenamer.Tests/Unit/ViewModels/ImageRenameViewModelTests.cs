@@ -15,14 +15,16 @@ public class ImageRenameViewModelTests
         Mock<Domain.Interfaces.IGeminiService>? geminiService = null,
         Mock<Domain.Interfaces.IFileService>? fileService = null,
         Mock<Domain.Interfaces.IConfigurationService>? configurationService = null,
-        Mock<Domain.Interfaces.IImageProcessingService>? imageProcessingService = null)
+        Mock<Domain.Interfaces.IImageProcessingService>? imageProcessingService = null,
+        Mock<Microsoft.Extensions.Logging.ILogger<ImageRenameViewModel>>? logger = null)
     {
         return new ImageRenameViewModel(
             (navigationService ?? MockServices.CreateNavigationService()).Object,
             (geminiService ?? MockServices.CreateGeminiService()).Object,
             (fileService ?? MockServices.CreateFileService()).Object,
             (configurationService ?? MockServices.CreateConfigurationService()).Object,
-            (imageProcessingService ?? MockServices.CreateImageProcessingService()).Object
+            (imageProcessingService ?? MockServices.CreateImageProcessingService()).Object,
+            (logger ?? MockServices.CreateLogger<ImageRenameViewModel>()).Object
         );
     }
 

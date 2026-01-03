@@ -121,7 +121,7 @@ public partial class ImageRenameViewModel : ImageProcessingViewModelBase
                 
                 if (result.Success)
                 {
-                    img.NewName = result.NewFileName;
+                    img.NewName = result.NewFileName ?? string.Empty;
                 }
 
                 processedCount++;

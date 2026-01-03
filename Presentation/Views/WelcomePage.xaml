@@ -8,101 +8,104 @@
       FlowDirection="RightToLeft"
       Background="{StaticResource BackgroundColor}">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="40" MaxWidth="900">
-            <!-- Header -->
-            <TextBlock Text="🖼️ Image AI Renamer" 
-                       FontSize="36" 
-                       FontWeight="Bold" 
-                       Foreground="{StaticResource TextPrimaryColor}"
-                       Margin="0,0,0,10"/>
-            <TextBlock Text="تطبيق ذكي لإدارة الصور باستخدام Google Gemini AI" 
-                       FontSize="18" 
-                       Foreground="{StaticResource TextSecondaryColor}"
-                       Margin="0,0,0,40"/>
+        <Grid Margin="40">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="30"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-            <!-- Instructions Section -->
-            <GroupBox Header="📖 كيفية البدء" Style="{StaticResource ModernGroupBoxStyle}">
-                <StackPanel>
-                    <TextBlock Text="1. الحصول على API Key من Google AI Studio" 
-                               FontWeight="SemiBold" 
-                               FontSize="16"
-                               Foreground="{StaticResource TextPrimaryColor}"
-                               Margin="0,0,0,15"/>
-                    
-                    <StackPanel Margin="20,0,0,20">
-                        <TextBlock Text="• افتح المتصفح واذهب إلى:" 
+            <!-- Right Section: Instructions -->
+            <StackPanel Grid.Column="0" MaxWidth="600">
+                <!-- Header -->
+                <TextBlock Text="🖼️ Image AI Renamer" 
+                           FontSize="36" 
+                           FontWeight="Bold" 
+                           Foreground="{StaticResource TextPrimaryColor}"
+                           Margin="0,0,0,10"/>
+                <TextBlock Text="تطبيق ذكي لإدارة الصور باستخدام Google Gemini AI" 
+                           FontSize="18" 
+                           Foreground="{StaticResource TextSecondaryColor}"
+                           Margin="0,0,0,40"/>
+                
+                <GroupBox Header="📖 كيفية البدء" Style="{StaticResource ModernGroupBoxStyle}">
+                    <StackPanel>
+                        <TextBlock Text="1. الحصول على API Key من Google AI Studio" 
+                                   FontWeight="SemiBold" 
+                                   FontSize="16"
                                    Foreground="{StaticResource TextPrimaryColor}"
-                                   Margin="0,0,0,5"/>
-                        <TextBlock Text="https://aistudio.google.com/" 
-                                   Foreground="{StaticResource PrimaryColor}"
-                                   FontWeight="SemiBold"
-                                   Margin="20,0,0,10"
-                                   Cursor="Hand">
-                            <TextBlock.InputBindings>
-                                <MouseBinding Gesture="LeftClick" Command="{Binding OpenAiStudioCommand}"/>
-                            </TextBlock.InputBindings>
-                        </TextBlock>
-                        <TextBlock Text="• سجل الدخول باستخدام حساب Google الخاص بك" 
+                                   Margin="0,0,0,15"/>
+                        
+                        <StackPanel Margin="20,0,0,20">
+                            <TextBlock Text="• افتح المتصفح واذهب إلى:" 
+                                       Foreground="{StaticResource TextPrimaryColor}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="https://aistudio.google.com/" 
+                                       Foreground="{StaticResource PrimaryColor}"
+                                       FontWeight="SemiBold"
+                                       Margin="20,0,0,10"
+                                       Cursor="Hand">
+                                <TextBlock.InputBindings>
+                                    <MouseBinding Gesture="LeftClick" Command="{Binding OpenAiStudioCommand}"/>
+                                </TextBlock.InputBindings>
+                            </TextBlock>
+                            <TextBlock Text="• سجل الدخول باستخدام حساب Google الخاص بك" 
+                                       Foreground="{StaticResource TextPrimaryColor}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="• اضغط على 'Get API Key' أو 'Create API Key'" 
+                                       Foreground="{StaticResource TextPrimaryColor}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="• انسخ المفتاح واحفظه في مكان آمن" 
+                                       Foreground="{StaticResource TextPrimaryColor}"
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="• يمكنك إضافة عدة مفاتيح لزيادة الحد اليومي" 
+                                       Foreground="{StaticResource TextPrimaryColor}"
+                                       Margin="0,0,0,5"/>
+                        </StackPanel>
+
+                        <TextBlock Text="2. كيفية عمل التطبيق" 
+                                   FontWeight="SemiBold" 
+                                   FontSize="16"
                                    Foreground="{StaticResource TextPrimaryColor}"
-                                   Margin="0,0,0,5"/>
-                        <TextBlock Text="• اضغط على 'Get API Key' أو 'Create API Key'" 
-                                   Foreground="{StaticResource TextPrimaryColor}"
-                                   Margin="0,0,0,5"/>
-                        <TextBlock Text="• انسخ المفتاح واحفظه في مكان آمن" 
-                                   Foreground="{StaticResource TextPrimaryColor}"
-                                   Margin="0,0,0,5"/>
-                        <TextBlock Text="• يمكنك إضافة عدة مفاتيح لزيادة الحد اليومي" 
-                                   Foreground="{StaticResource TextPrimaryColor}"
-                                   Margin="0,0,0,5"/>
+                                   Margin="0,15,0,15"/>
+                        
+                        <StackPanel Margin="20,0,0,0">
+                            <TextBlock Text="يستخدم هذا التطبيق Google Gemini AI لتحليل الصور وفهم محتواها." 
+                                       Foreground="{StaticResource TextPrimaryColor}"
+                                       Margin="0,0,0,10"
+                                       TextWrapping="Wrap"/>
+                            <TextBlock Text="يمكنك استخدام ميزتين رئيسيتين:" 
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryColor}"
+                                       Margin="0,0,0,10"/>
+                            <TextBlock Text="• البحث عن الصور: للعثور على صور تحتوي على محتوى معين" 
+                                       Foreground="{StaticResource TextPrimaryColor}"
+                                       Margin="20,0,0,5"/>
+                            <TextBlock Text="• إعادة تسمية الصور: لإعادة تسمية الصور بناءً على محتواها" 
+                                       Foreground="{StaticResource TextPrimaryColor}"
+                                       Margin="20,0,0,5"/>
+                        </StackPanel>
                     </StackPanel>
+                </GroupBox>
+            </StackPanel>
 
-                    <TextBlock Text="2. كيفية عمل التطبيق" 
-                               FontWeight="SemiBold" 
-                               FontSize="16"
-                               Foreground="{StaticResource TextPrimaryColor}"
-                               Margin="0,15,0,15"/>
-                    
-                    <StackPanel Margin="20,0,0,0">
-                        <TextBlock Text="يستخدم هذا التطبيق Google Gemini AI لتحليل الصور وفهم محتواها." 
-                                   Foreground="{StaticResource TextPrimaryColor}"
-                                   Margin="0,0,0,10"
-                                   TextWrapping="Wrap"/>
-                        <TextBlock Text="يمكنك استخدام ميزتين رئيسيتين:" 
-                                   FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryColor}"
-                                   Margin="0,0,0,10"/>
-                        <TextBlock Text="• البحث عن الصور: للعثور على صور تحتوي على محتوى معين" 
-                                   Foreground="{StaticResource TextPrimaryColor}"
-                                   Margin="20,0,0,5"/>
-                        <TextBlock Text="• إعادة تسمية الصور: لإعادة تسمية الصور بناءً على محتواها" 
-                                   Foreground="{StaticResource TextPrimaryColor}"
-                                   Margin="20,0,0,5"/>
-                    </StackPanel>
-                </StackPanel>
-            </GroupBox>
-
-            <!-- Features Section -->
-            <TextBlock Text="اختر الميزة التي تريد استخدامها:" 
-                       FontSize="18" 
-                       FontWeight="SemiBold"
-                       Foreground="{StaticResource TextPrimaryColor}"
-                       Margin="0,20,0,20"/>
-
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+            <!-- Left Section: Features Selection -->
+            <StackPanel Grid.Column="2" MaxWidth="600">
+                <!-- Features Section -->
+                <TextBlock Text="اختر الميزة التي تريد استخدامها:" 
+                           FontSize="20" 
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryColor}"
+                           Margin="0,0,0,20"/>
 
                 <!-- Search Feature Button -->
-                <Border Grid.Column="0" 
-                        Background="{StaticResource SurfaceColor}"
+                <Border Background="{StaticResource SurfaceColor}"
                         BorderBrush="{StaticResource BorderColor}"
                         BorderThickness="2"
                         CornerRadius="12"
                         Padding="30"
-                        Cursor="Hand">
+                        Cursor="Hand"
+                        Margin="0,0,0,20">
                     <Border.InputBindings>
                         <MouseBinding Gesture="LeftClick" Command="{Binding NavigateToSearchCommand}"/>
                     </Border.InputBindings>
@@ -141,8 +144,7 @@
                 </Border>
 
                 <!-- Rename Feature Button -->
-                <Border Grid.Column="2" 
-                        Background="{StaticResource SurfaceColor}"
+                <Border Background="{StaticResource SurfaceColor}"
                         BorderBrush="{StaticResource BorderColor}"
                         BorderThickness="2"
                         CornerRadius="12"
@@ -184,7 +186,7 @@
                                    HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Border>
-            </Grid>
-        </StackPanel>
+            </StackPanel>
+        </Grid>
     </ScrollViewer>
 </Page>
