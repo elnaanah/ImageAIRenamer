@@ -28,4 +28,22 @@ public interface IGeminiService
     /// </summary>
     /// <param name="apiKeys">Array of API keys</param>
     void SetApiKeys(string[] apiKeys);
+
+    /// <summary>
+    /// Gets the API key at the specified index for parallel processing
+    /// </summary>
+    /// <param name="index">Index of the API key</param>
+    /// <returns>The API key at the specified index</returns>
+    string GetApiKeyForIndex(int index);
+
+    /// <summary>
+    /// Gets the number of available API keys
+    /// </summary>
+    int ApiKeysCount { get; }
+
+    /// <summary>
+    /// Gets the next API key index in a thread-safe round-robin manner
+    /// </summary>
+    /// <returns>The next API key index</returns>
+    int GetNextApiKeyIndex();
 }

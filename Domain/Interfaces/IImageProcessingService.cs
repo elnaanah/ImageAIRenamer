@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using ImageAIRenamer.Domain.Entities;
 
 namespace ImageAIRenamer.Domain.Interfaces;
@@ -5,6 +6,7 @@ namespace ImageAIRenamer.Domain.Interfaces;
 public interface IImageProcessingService
 {
     string GenerateUniqueFileName(string baseName, string extension, Dictionary<string, int> usedNames);
+    string GenerateUniqueFileName(string baseName, string extension, ConcurrentDictionary<string, int> usedNames);
     
     Task<ProcessRenameResult> ProcessImageForRenameAsync(
         ImageItem imageItem,
@@ -15,11 +17,29 @@ public interface IImageProcessingService
         IFileService fileService,
         CancellationToken cancellationToken);
     
+    Task<ProcessRenameResult> ProcessImageForRenameAsync(
+        ImageItem imageItem,
+        string outputFolder,
+        string? customInstructions,
+        ConcurrentDictionary<string, int> usedNames,
+        IGeminiService geminiService,
+        IFileService fileService,
+        CancellationToken cancellationToken);
+    
     Task<ProcessSearchResult> ProcessImageForSearchAsync(
         ImageItem imageItem,
         string searchDescription,
         string outputFolder,
         Dictionary<string, int> usedNames,
+        IGeminiService geminiService,
+        IFileService fileService,
+        CancellationToken cancellationToken);
+    
+    Task<ProcessSearchResult> ProcessImageForSearchAsync(
+        ImageItem imageItem,
+        string searchDescription,
+        string outputFolder,
+        ConcurrentDictionary<string, int> usedNames,
         IGeminiService geminiService,
         IFileService fileService,
         CancellationToken cancellationToken);

@@ -53,6 +53,9 @@ public abstract partial class ImageProcessingViewModelBase : ViewModelBase, IDis
     [ObservableProperty]
     protected bool isProgressVisible;
 
+    [ObservableProperty]
+    protected bool enableSpeedBoost = false;
+
     protected abstract ObservableCollection<ImageItem> ImagesCollection { get; }
 
     protected abstract IAsyncRelayCommand? MainCommand { get; }
@@ -215,6 +218,12 @@ public abstract partial class ImageProcessingViewModelBase : ViewModelBase, IDis
         {
             ShowError(ErrorMessages.NoApiKeys, "خطأ");
             return Array.Empty<string>();
+        }
+
+        if (EnableSpeedBoost && apiKeysArray.Length < 2)
+        {
+            ShowWarning("يحتاج التسريع إلى مفتاحين API على الأقل. سيتم استخدام المعالجة المتسلسلة.", "تنبيه");
+            EnableSpeedBoost = false;
         }
 
         return apiKeysArray;

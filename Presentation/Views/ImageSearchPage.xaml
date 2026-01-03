@@ -37,6 +37,12 @@
                                  TextWrapping="NoWrap" Style="{StaticResource ModernTextBoxStyle}"
                                  Text="{Binding ApiKeys, UpdateSourceTrigger=PropertyChanged}"
                                  ToolTip="أدخل مفاتيح Gemini API الخاصة بك، مفتاح واحد في كل سطر"/>
+                        <CheckBox Content="⚡ تفعيل التسريع (استخدام API keys متوازي)" 
+                                  IsChecked="{Binding EnableSpeedBoost, UpdateSourceTrigger=PropertyChanged}"
+                                  Margin="0,12,0,0"
+                                  Foreground="{StaticResource TextPrimaryColor}"
+                                  FontWeight="Medium"
+                                  ToolTip="عند التفعيل، سيتم توزيع الصور على API keys مختلفة بشكل متوازي مما يسرع العملية. يتطلب مفتاحين API على الأقل."/>
                     </StackPanel>
                 </GroupBox>
 

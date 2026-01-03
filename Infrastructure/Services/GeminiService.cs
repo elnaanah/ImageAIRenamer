@@ -17,6 +17,7 @@ public class GeminiService : IGeminiService
     private readonly IHttpClientFactory _httpClientFactory;
     private int _currentKeyIndex = 0;
     private string[] _apiKeys = Array.Empty<string>();
+    private int _parallelKeyIndex = 0;
 
     public GeminiService(
         IConfigurationService configurationService,
@@ -33,11 +34,45 @@ public class GeminiService : IGeminiService
     {
         _apiKeys = apiKeys.Where(k => !string.IsNullOrWhiteSpace(k)).ToArray();
         _currentKeyIndex = 0;
+        _parallelKeyIndex = 0;
         _logger.LogInformation("API keys configured. {Count} keys available.", _apiKeys.Length);
     }
 
     /// <inheritdoc/>
+    public string GetApiKeyForIndex(int index)
+    {
+        if (_apiKeys.Length == 0)
+        {
+            throw new InvalidOperationException("No API keys configured.");
+        }
+        if (index < 0 || index >= _apiKeys.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index), "Index is out of range.");
+        }
+        return _apiKeys[index];
+    }
+
+    /// <inheritdoc/>
+    public int ApiKeysCount => _apiKeys.Length;
+
+    /// <inheritdoc/>
+    public int GetNextApiKeyIndex()
+    {
+        if (_apiKeys.Length == 0)
+        {
+            return 0;
+        }
+        var nextIndex = Interlocked.Increment(ref _parallelKeyIndex);
+        return (nextIndex - 1) % _apiKeys.Length;
+    }
+
+    /// <inheritdoc/>
     public async Task<string> GenerateTitleAsync(string imagePath, string? customInstructions = null, CancellationToken cancellationToken = default)
+    {
+        return await GenerateTitleAsync(imagePath, customInstructions, null, cancellationToken);
+    }
+
+    public async Task<string> GenerateTitleAsync(string imagePath, string? customInstructions, int? apiKeyIndex, CancellationToken cancellationToken = default)
     {
         if (_apiKeys.Length == 0)
         {
@@ -45,17 +80,19 @@ public class GeminiService : IGeminiService
             throw new InvalidOperationException("No API keys provided.");
         }
 
-        int attempts = 0;
-        int maxAttempts = _apiKeys.Length;
         var model = _configurationService.GetGeminiModel();
         var defaultPrompt = ((ConfigurationService)_configurationService).GetDefaultPrompt();
 
+        int attempts = 0;
+        int maxAttempts = _apiKeys.Length;
+        int currentAttemptIndex = apiKeyIndex.HasValue ? apiKeyIndex.Value : _currentKeyIndex;
+
         while (attempts < maxAttempts)
         {
-            string apiKey = _apiKeys[_currentKeyIndex];
+            string apiKey = _apiKeys[currentAttemptIndex % _apiKeys.Length];
             try
             {
-                _logger.LogDebug("Generating title for image: {ImagePath} using key index {Index}", imagePath, _currentKeyIndex);
+                _logger.LogDebug("Generating title for image: {ImagePath} using key index {Index}", imagePath, currentAttemptIndex % _apiKeys.Length);
                 return await CallGenerateApiAsync(apiKey, imagePath, customInstructions, model, defaultPrompt, cancellationToken);
             }
             catch (Exception ex)
@@ -63,9 +100,16 @@ public class GeminiService : IGeminiService
                 string msg = ex.Message.ToLower();
                 if (msg.Contains("429") || msg.Contains("quota") || msg.Contains("resource_exhausted") || msg.Contains("rate limit"))
                 {
-                    _logger.LogWarning("API key {Index} quota exceeded, rotating to next key", _currentKeyIndex);
-                    _currentKeyIndex = (_currentKeyIndex + 1) % _apiKeys.Length;
+                    _logger.LogWarning("API key {Index} quota exceeded, rotating to next key", currentAttemptIndex % _apiKeys.Length);
+                    currentAttemptIndex++;
                     attempts++;
+                    
+                    // If we are in sequential mode (no specific index requested), update the global index
+                    if (!apiKeyIndex.HasValue)
+                    {
+                        _currentKeyIndex = (_currentKeyIndex + 1) % _apiKeys.Length;
+                    }
+                    
                     if (attempts >= maxAttempts)
                     {
                         _logger.LogError("All API keys exhausted");
@@ -85,22 +129,29 @@ public class GeminiService : IGeminiService
     /// <inheritdoc/>
     public async Task<SearchResult> SearchImageAsync(string imagePath, string searchDescription, CancellationToken cancellationToken = default)
     {
+        return await SearchImageAsync(imagePath, searchDescription, null, cancellationToken);
+    }
+
+    public async Task<SearchResult> SearchImageAsync(string imagePath, string searchDescription, int? apiKeyIndex, CancellationToken cancellationToken = default)
+    {
         if (_apiKeys.Length == 0)
         {
             _logger.LogError("No API keys configured");
             throw new InvalidOperationException("No API keys provided.");
         }
 
+        var model = _configurationService.GetGeminiModel();
+
         int attempts = 0;
         int maxAttempts = _apiKeys.Length;
-        var model = _configurationService.GetGeminiModel();
+        int currentAttemptIndex = apiKeyIndex.HasValue ? apiKeyIndex.Value : _currentKeyIndex;
 
         while (attempts < maxAttempts)
         {
-            string apiKey = _apiKeys[_currentKeyIndex];
+            string apiKey = _apiKeys[currentAttemptIndex % _apiKeys.Length];
             try
             {
-                _logger.LogDebug("Searching image: {ImagePath} for: {Description} using key index {Index}", imagePath, searchDescription, _currentKeyIndex);
+                _logger.LogDebug("Searching image: {ImagePath} for: {Description} using key index {Index}", imagePath, searchDescription, currentAttemptIndex % _apiKeys.Length);
                 return await CallSearchApiAsync(apiKey, imagePath, searchDescription, model, cancellationToken);
             }
             catch (Exception ex)
@@ -108,9 +159,16 @@ public class GeminiService : IGeminiService
                 string msg = ex.Message.ToLower();
                 if (msg.Contains("429") || msg.Contains("quota") || msg.Contains("resource_exhausted") || msg.Contains("rate limit"))
                 {
-                    _logger.LogWarning("API key {Index} quota exceeded, rotating to next key", _currentKeyIndex);
-                    _currentKeyIndex = (_currentKeyIndex + 1) % _apiKeys.Length;
+                    _logger.LogWarning("API key {Index} quota exceeded, rotating to next key", currentAttemptIndex % _apiKeys.Length);
+                    currentAttemptIndex++;
                     attempts++;
+
+                    // If we are in sequential mode (no specific index requested), update the global index
+                    if (!apiKeyIndex.HasValue)
+                    {
+                        _currentKeyIndex = (_currentKeyIndex + 1) % _apiKeys.Length;
+                    }
+
                     if (attempts >= maxAttempts)
                     {
                         _logger.LogError("All API keys exhausted");

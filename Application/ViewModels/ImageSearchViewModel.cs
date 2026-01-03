@@ -1,10 +1,13 @@
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ImageAIRenamer.Application.Common;
 using ImageAIRenamer.Domain.Entities;
 using ImageAIRenamer.Domain.Interfaces;
+using ImageAIRenamer.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 
 namespace ImageAIRenamer.Application.ViewModels;
@@ -112,31 +115,59 @@ public partial class ImageSearchViewModel : ImageProcessingViewModelBase
         var cancellationToken = _cancellationTokenSource!.Token;
 
         var searchDescription = SearchDescription;
+
+        try
+        {
+            int matchedCount;
+            if (EnableSpeedBoost && apiKeysArray.Length >= 2)
+            {
+                matchedCount = await SearchImagesParallelAsync(apiKeysArray, searchDescription, cancellationToken);
+            }
+            else
+            {
+                matchedCount = await SearchImagesSequentialAsync(searchDescription, cancellationToken);
+            }
+
+            ProgressText = $"مطابق: {matchedCount} / {MatchedImages.Count}";
+            var message = string.Format(SuccessMessages.SearchCompleted, matchedCount, MatchedImages.Count);
+            EndProcessing(message);
+            _logger.LogInformation("Search completed. Found {MatchedCount} matches out of {TotalCount}", matchedCount, MatchedImages.Count);
+        }
+        finally
+        {
+            IsSearchEnabled = true;
+        }
+    }
+
+    private async Task<int> SearchImagesSequentialAsync(string searchDescription, CancellationToken cancellationToken)
+    {
         var usedNames = new Dictionary<string, int>();
         int processedCount = 0;
         int matchedCount = 0;
 
-        try
+        foreach (var img in MatchedImages)
         {
-            foreach (var img in MatchedImages)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                    break;
+            if (cancellationToken.IsCancellationRequested)
+                break;
 
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
                 img.Status = ImageStatusConstants.Processing;
                 ProgressText = $"جاري المعالجة {processedCount + 1} من {MatchedImages.Count}...";
+            });
 
-                var result = await _imageProcessingService.ProcessImageForSearchAsync(
-                    img,
-                    searchDescription,
-                    OutputFolder,
-                    usedNames,
-                    _geminiService,
-                    _fileService,
-                    cancellationToken);
+            var result = await _imageProcessingService.ProcessImageForSearchAsync(
+                img,
+                searchDescription,
+                OutputFolder,
+                usedNames,
+                _geminiService,
+                _fileService,
+                cancellationToken);
 
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
                 img.Status = result.Status;
-                
                 if (result.IsMatch)
                 {
                     matchedCount++;
@@ -146,19 +177,132 @@ public partial class ImageSearchViewModel : ImageProcessingViewModelBase
                 {
                     img.IsSelected = false;
                 }
-
                 processedCount++;
                 ProgressValue = processedCount;
-            }
+            });
         }
-        finally
+
+        return matchedCount;
+    }
+
+    private async Task<int> SearchImagesParallelAsync(string[] apiKeysArray, string searchDescription, CancellationToken cancellationToken)
+    {
+        var usedNames = new ConcurrentDictionary<string, int>();
+        var semaphore = new SemaphoreSlim(apiKeysArray.Length, apiKeysArray.Length);
+        int processedCount = 0;
+        int matchedCount = 0;
+        var tasks = new List<Task>();
+
+        foreach (var img in MatchedImages)
         {
-            IsSearchEnabled = true;
-            ProgressText = $"مطابق: {matchedCount} / {MatchedImages.Count}";
-            var message = string.Format(SuccessMessages.SearchCompleted, matchedCount, MatchedImages.Count);
-            EndProcessing(message);
-            _logger.LogInformation("Search completed. Found {MatchedCount} matches out of {TotalCount}", matchedCount, MatchedImages.Count);
+            if (cancellationToken.IsCancellationRequested)
+                break;
+
+            var image = img;
+            var task = Task.Run(async () =>
+            {
+                await semaphore.WaitAsync(cancellationToken);
+                try
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                        return;
+
+                    var apiKeyIndex = _geminiService.GetNextApiKeyIndex();
+                    var geminiServiceWrapper = new GeminiServiceWrapper(_geminiService, apiKeyIndex);
+
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        image.Status = ImageStatusConstants.Processing;
+                    });
+
+                    var result = await _imageProcessingService.ProcessImageForSearchAsync(
+                        image,
+                        searchDescription,
+                        OutputFolder,
+                        usedNames,
+                        geminiServiceWrapper,
+                        _fileService,
+                        cancellationToken);
+
+                    var currentCount = Interlocked.Increment(ref processedCount);
+                    bool isMatch = result.IsMatch;
+                    if (isMatch)
+                    {
+                        Interlocked.Increment(ref matchedCount);
+                    }
+
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        image.Status = result.Status;
+                        if (isMatch)
+                        {
+                            image.NewName = result.NewFileName ?? string.Empty;
+                        }
+                        else
+                        {
+                            image.IsSelected = false;
+                        }
+                        ProgressText = $"جاري المعالجة {currentCount} من {MatchedImages.Count}...";
+                        ProgressValue = currentCount;
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing image in parallel: {FilePath}", image.FilePath);
+                    var currentCount = Interlocked.Increment(ref processedCount);
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        image.Status = ImageStatusConstants.Error;
+                        ProgressText = $"جاري المعالجة {currentCount} من {MatchedImages.Count}...";
+                        ProgressValue = currentCount;
+                    });
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }, cancellationToken);
+
+            tasks.Add(task);
         }
+
+        await Task.WhenAll(tasks);
+        return matchedCount;
+    }
+
+    private class GeminiServiceWrapper : IGeminiService
+    {
+        private readonly IGeminiService _service;
+        private readonly int _apiKeyIndex;
+
+        public GeminiServiceWrapper(IGeminiService service, int apiKeyIndex)
+        {
+            _service = service;
+            _apiKeyIndex = apiKeyIndex;
+        }
+
+        public Task<string> GenerateTitleAsync(string imagePath, string? customInstructions = null, CancellationToken cancellationToken = default)
+        {
+            if (_service is Infrastructure.Services.GeminiService gs)
+            {
+                return gs.GenerateTitleAsync(imagePath, customInstructions, _apiKeyIndex, cancellationToken);
+            }
+            return _service.GenerateTitleAsync(imagePath, customInstructions, cancellationToken);
+        }
+
+        public Task<Domain.Entities.SearchResult> SearchImageAsync(string imagePath, string searchDescription, CancellationToken cancellationToken = default)
+        {
+            if (_service is Infrastructure.Services.GeminiService gs)
+            {
+                return gs.SearchImageAsync(imagePath, searchDescription, _apiKeyIndex, cancellationToken);
+            }
+            return _service.SearchImageAsync(imagePath, searchDescription, cancellationToken);
+        }
+
+        public void SetApiKeys(string[] apiKeys) => _service.SetApiKeys(apiKeys);
+        public string GetApiKeyForIndex(int index) => _service.GetApiKeyForIndex(index);
+        public int ApiKeysCount => _service.ApiKeysCount;
+        public int GetNextApiKeyIndex() => _service.GetNextApiKeyIndex();
     }
 
     private async Task CopySelectedImagesAsync()
