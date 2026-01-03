@@ -109,11 +109,26 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <Button Content="🗑️ مسح الكل" Command="{Binding ClearListCommand}" 
                                     Style="{StaticResource SecondaryButtonStyle}" Grid.Column="0"/>
                             <Button Content="🚀 بدء إعادة التسمية" Command="{Binding ProcessCommand}" 
                                     Style="{StaticResource ModernButtonStyle}" Grid.Column="2"/>
+                            <Button Content="❌ إلغاء" Command="{Binding CancelCommand}" 
+                                    Style="{StaticResource SecondaryButtonStyle}" Grid.Column="4">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsProgressVisible}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </Grid>
                     </StackPanel>
                 </Border>

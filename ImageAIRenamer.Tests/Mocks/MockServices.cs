@@ -90,4 +90,40 @@ public static class MockServices
         var mock = new Mock<INavigationService>();
         return mock;
     }
+
+    /// <summary>
+    /// Creates a mock IImageProcessingService
+    /// </summary>
+    public static Mock<IImageProcessingService> CreateImageProcessingService()
+    {
+        var mock = new Mock<IImageProcessingService>();
+        
+        mock.Setup(x => x.GenerateUniqueFileName(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, int>>()))
+            .Returns<string, string, Dictionary<string, int>>((name, ext, used) => name + ext);
+
+        mock.Setup(x => x.ProcessImageForRenameAsync(
+                It.IsAny<ImageItem>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<Dictionary<string, int>>(),
+                It.IsAny<IGeminiService>(),
+                It.IsAny<IFileService>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessRenameResult { Success = true, NewFileName = "renamed.jpg", Status = "تم" });
+
+        mock.Setup(x => x.ProcessImageForSearchAsync(
+                It.IsAny<ImageItem>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, int>>(),
+                It.IsAny<IGeminiService>(),
+                It.IsAny<IFileService>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessSearchResult { IsMatch = true, NewFileName = "matched.jpg", Status = "مطابق" });
+
+        return mock;
+    }
 }

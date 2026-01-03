@@ -21,12 +21,14 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Infrastructure services
+        services.AddHttpClient();
+        
         services.AddSingleton<IConfigurationService, ConfigurationService>();
         services.AddSingleton<IFileService, FileService>();
         services.AddSingleton<IServiceProvider>(sp => sp);
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IGeminiService, GeminiService>();
+        services.AddSingleton<IImageProcessingService, ImageProcessingService>();
 
         // ViewModels
         services.AddTransient<WelcomeViewModel>();

@@ -1,315 +1,140 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ImageAIRenamer.Application.Common;
 using ImageAIRenamer.Domain.Entities;
 using ImageAIRenamer.Domain.Interfaces;
-using Microsoft.Win32;
+using Microsoft.Extensions.Logging;
 
 namespace ImageAIRenamer.Application.ViewModels;
 
-/// <summary>
-/// ViewModel for the image rename page
-/// </summary>
-public partial class ImageRenameViewModel : ViewModelBase
+public partial class ImageRenameViewModel : ImageProcessingViewModelBase
 {
-    private readonly INavigationService _navigationService;
     private readonly IGeminiService _geminiService;
-    private readonly IFileService _fileService;
-    private readonly IConfigurationService _configurationService;
-    private CancellationTokenSource? _cancellationTokenSource;
+    private readonly IImageProcessingService _imageProcessingService;
 
-    public ImageRenameViewModel(
-        INavigationService navigationService,
-        IGeminiService geminiService,
-        IFileService fileService,
-        IConfigurationService configurationService)
-    {
-        _navigationService = navigationService;
-        _geminiService = geminiService;
-        _fileService = fileService;
-        _configurationService = configurationService;
-        
-        // Initialize ProcessCommand once
-        _processCommand = new AsyncRelayCommand(ProcessImagesAsync, () => IsProcessEnabled);
-        
-        _ = LoadApiKeysAsync();
-    }
 
     [ObservableProperty]
     private ObservableCollection<ImageItem> images = new();
 
     [ObservableProperty]
-    private string sourceFolder = string.Empty;
-
-    [ObservableProperty]
-    private string outputFolder = string.Empty;
-
-    [ObservableProperty]
     private string customInstructions = string.Empty;
 
     [ObservableProperty]
-    private string apiKeys = string.Empty;
-
-    [ObservableProperty]
-    private string statusText = string.Empty;
-
-    [ObservableProperty]
-    private double progressValue;
-
-    [ObservableProperty]
-    private double progressMaximum;
-
-    [ObservableProperty]
-    private bool isProgressVisible;
+    private string progressText = string.Empty;
 
     [ObservableProperty]
     private bool isProcessEnabled = false;
 
     private readonly IAsyncRelayCommand _processCommand;
 
-    /// <summary>
-    /// Command to process images
-    /// </summary>
+    public ImageRenameViewModel(
+        INavigationService navigationService,
+        IGeminiService geminiService,
+        IFileService fileService,
+        IConfigurationService configurationService,
+        IImageProcessingService imageProcessingService,
+        ILogger<ImageRenameViewModel> logger)
+        : base(navigationService, fileService, configurationService, logger)
+    {
+        _geminiService = geminiService;
+        _imageProcessingService = imageProcessingService;
+        
+        _processCommand = new AsyncRelayCommand(ProcessImagesAsync, () => IsProcessEnabled);
+    }
+
     public IAsyncRelayCommand ProcessCommand => _processCommand;
 
-    /// <summary>
-    /// Command to browse for source folder
-    /// </summary>
-    public IRelayCommand BrowseSourceCommand => new RelayCommand(() =>
-    {
-        var dialog = new OpenFolderDialog();
-        if (dialog.ShowDialog() == true)
-        {
-            SourceFolder = dialog.FolderName;
-            _ = LoadImagesAsync(SourceFolder);
-        }
-    });
+    protected override IAsyncRelayCommand? MainCommand => _processCommand;
 
-    /// <summary>
-    /// Command to browse for output folder
-    /// </summary>
-    public IRelayCommand BrowseOutputCommand => new RelayCommand(() =>
+    protected override void OnCancelOperation()
     {
-        var dialog = new OpenFolderDialog();
-        if (dialog.ShowDialog() == true)
-        {
-            OutputFolder = dialog.FolderName;
-            CheckReady();
-        }
-    });
+        IsProcessEnabled = true;
+        ProgressText = string.Empty;
+    }
 
-    /// <summary>
-    /// Command to clear the list
-    /// </summary>
-    public IRelayCommand ClearListCommand => new RelayCommand(() =>
+    protected override void ClearAllData()
     {
-        Images.Clear();
-        SourceFolder = string.Empty;
-        OutputFolder = string.Empty;
+        base.ClearAllData();
         CustomInstructions = string.Empty;
-        StatusText = string.Empty;
-        ProgressValue = 0;
-        IsProgressVisible = false;
-        CheckReady();
-    });
-
-    /// <summary>
-    /// Command to navigate back to home
-    /// </summary>
-    public IRelayCommand BackToHomeCommand => new RelayCommand(() =>
-    {
-        _navigationService.NavigateToWelcome();
-    });
-
-    /// <summary>
-    /// Command to open an image
-    /// </summary>
-    public IRelayCommand<ImageItem> OpenImageCommand => new RelayCommand<ImageItem>(item =>
-    {
-        if (item != null)
-        {
-            try
-            {
-                Process.Start(new ProcessStartInfo(item.FilePath) { UseShellExecute = true });
-            }
-            catch
-            {
-                // Silently fail
-            }
-        }
-    });
-
-    private async Task LoadApiKeysAsync()
-    {
-        try
-        {
-            var keys = await _configurationService.GetApiKeysAsync();
-            ApiKeys = string.Join(Environment.NewLine, keys);
-        }
-        catch
-        {
-            // Silently fail
-        }
+        ProgressText = string.Empty;
     }
 
-    /// <summary>
-    /// Handles output folder changes
-    /// </summary>
-    partial void OnOutputFolderChanged(string value)
+    protected override void OnClearList()
     {
-        CheckReady();
+        OnReadyStateChanged();
     }
 
-    /// <summary>
-    /// Handles source folder changes
-    /// </summary>
-    partial void OnSourceFolderChanged(string value)
-    {
-        // SourceFolder changes trigger LoadImagesAsync which calls CheckReady() after loading
-        // No need to check here as images haven't loaded yet
-    }
+    protected override ObservableCollection<ImageItem> ImagesCollection => Images;
 
-    private async Task LoadImagesAsync(string folder)
-    {
-        try
-        {
-            Images.Clear();
-            var extensions = _configurationService.GetSupportedExtensions();
-            var files = await _fileService.LoadImageFilesAsync(folder, extensions);
-
-            foreach (var file in files)
-            {
-                Images.Add(new ImageItem
-                {
-                    FilePath = file,
-                    OriginalName = Path.GetFileNameWithoutExtension(file),
-                    Status = "في الانتظار"
-                });
-            }
-
-            StatusText = $"تم تحميل {Images.Count} صورة.";
-        }
-        catch (Exception ex)
-        {
-            StatusText = $"حدث خطأ أثناء تحميل الصور: {ex.Message}";
-            Images.Clear();
-        }
-        finally
-        {
-            // Always check ready state after loading attempt
-            CheckReady();
-        }
-    }
-
-    private void CheckReady()
+    protected override void OnReadyStateChanged()
     {
         IsProcessEnabled = Images.Count > 0 && !string.IsNullOrWhiteSpace(OutputFolder);
-        _processCommand.NotifyCanExecuteChanged();
+        NotifyCommands();
     }
 
     private async Task ProcessImagesAsync()
     {
-        var apiKeysArray = ApiKeys.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+        var apiKeysArray = ValidateAndSetupApiKeys();
         if (apiKeysArray.Length == 0)
         {
-            ShowError("الرجاء إدخال مفتاح Gemini API واحد على الأقل.", "خطأ");
             return;
         }
 
         await _configurationService.SaveApiKeysAsync(apiKeysArray);
 
-        if (!Directory.Exists(OutputFolder))
+        if (!EnsureOutputFolderExists())
         {
-            try
-            {
-                Directory.CreateDirectory(OutputFolder);
-            }
-            catch
-            {
-                ShowError("تعذر إنشاء مجلد الإخراج.", "خطأ");
-                return;
-            }
+            return;
         }
 
-        // Set API keys on service
-        if (_geminiService is Infrastructure.Services.GeminiService geminiServiceImpl)
-        {
-            geminiServiceImpl.SetApiKeys(apiKeysArray);
-        }
+        _geminiService.SetApiKeys(apiKeysArray);
 
         IsProcessEnabled = false;
-        _processCommand.NotifyCanExecuteChanged();
-        IsProgressVisible = true;
-        ProgressMaximum = Images.Count;
-        ProgressValue = 0;
-
-        _cancellationTokenSource = new CancellationTokenSource();
-        var cancellationToken = _cancellationTokenSource.Token;
+        StartProcessing(Images.Count);
+        var cancellationToken = _cancellationTokenSource!.Token;
 
         var customInstructions = CustomInstructions;
         var usedNames = new Dictionary<string, int>();
 
         try
         {
+            int processedCount = 0;
             foreach (var img in Images)
             {
                 if (cancellationToken.IsCancellationRequested)
                     break;
 
-                img.Status = "جاري إعادة التسمية...";
+                img.Status = ImageStatusConstants.Renaming;
+                ProgressText = $"جاري إعادة التسمية {processedCount + 1} من {Images.Count}...";
 
-                try
+                var result = await _imageProcessingService.ProcessImageForRenameAsync(
+                    img,
+                    OutputFolder,
+                    customInstructions,
+                    usedNames,
+                    _geminiService,
+                    _fileService,
+                    cancellationToken);
+
+                img.Status = result.Status;
+                
+                if (result.Success)
                 {
-                    var title = await _geminiService.GenerateTitleAsync(img.FilePath, customInstructions, cancellationToken);
-                    var sanitized = _fileService.SanitizeFilename(title);
-
-                    var baseName = sanitized;
-                    int counter = 0;
-
-                    // Check if this name was already used in this batch
-                    if (usedNames.ContainsKey(baseName))
-                    {
-                        counter = usedNames[baseName];
-                    }
-                    usedNames[baseName] = counter + 1;
-
-                    if (counter > 0)
-                    {
-                        sanitized = $"{baseName}_{counter}";
-                    }
-
-                    var ext = Path.GetExtension(img.FilePath);
-                    var uniquePath = _fileService.EnsureUniqueFilename(OutputFolder, sanitized, ext);
-                    var newFileName = Path.GetFileName(uniquePath);
-
-                    await _fileService.CopyFileAsync(img.FilePath, uniquePath, true);
-
-                    img.NewName = newFileName;
-                    img.Status = "تم";
-                }
-                catch (OperationCanceledException)
-                {
-                    img.Status = "ملغي";
-                    break;
-                }
-                catch (Exception)
-                {
-                    img.Status = "خطأ";
+                    img.NewName = result.NewFileName;
                 }
 
+                processedCount++;
                 ProgressValue++;
             }
         }
         finally
         {
-            IsProgressVisible = false;
             IsProcessEnabled = true;
-            _processCommand.NotifyCanExecuteChanged();
-            StatusText = "اكتملت المعالجة!";
-            ShowInfo("اكتملت المعالجة!", "نجح");
+            ProgressText = $"تمت معالجة {Images.Count} صورة.";
+            EndProcessing(SuccessMessages.ProcessingCompleted);
+            ShowInfo(SuccessMessages.ProcessingCompleted, "نجح");
+            _logger.LogInformation("Image renaming completed. Processed {Count} images", Images.Count);
         }
     }
 }

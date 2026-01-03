@@ -1,281 +1,115 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.IO;
-using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ImageAIRenamer.Application.Common;
 using ImageAIRenamer.Domain.Entities;
 using ImageAIRenamer.Domain.Interfaces;
-using Microsoft.Win32;
+using Microsoft.Extensions.Logging;
 
 namespace ImageAIRenamer.Application.ViewModels;
 
-/// <summary>
-/// ViewModel for the image search page
-/// </summary>
-public partial class ImageSearchViewModel : ViewModelBase
+public partial class ImageSearchViewModel : ImageProcessingViewModelBase
 {
-    private readonly INavigationService _navigationService;
     private readonly IGeminiService _geminiService;
-    private readonly IFileService _fileService;
-    private readonly IConfigurationService _configurationService;
-    private CancellationTokenSource? _cancellationTokenSource;
+    private readonly IImageProcessingService _imageProcessingService;
 
-    public ImageSearchViewModel(
-        INavigationService navigationService,
-        IGeminiService geminiService,
-        IFileService fileService,
-        IConfigurationService configurationService)
-    {
-        _navigationService = navigationService;
-        _geminiService = geminiService;
-        _fileService = fileService;
-        _configurationService = configurationService;
-        
-        // Initialize SearchCommand once
-        _searchCommand = new AsyncRelayCommand(SearchImagesAsync, () => IsSearchEnabled);
-        
-        _ = LoadApiKeysAsync();
-    }
 
     [ObservableProperty]
     private ObservableCollection<ImageItem> matchedImages = new();
 
     [ObservableProperty]
-    private string sourceFolder = string.Empty;
-
-    [ObservableProperty]
-    private string outputFolder = string.Empty;
-
-    [ObservableProperty]
     private string searchDescription = string.Empty;
 
     [ObservableProperty]
-    private string apiKeys = string.Empty;
-
-    [ObservableProperty]
-    private string statusText = string.Empty;
-
-    [ObservableProperty]
     private string progressText = string.Empty;
-
-    [ObservableProperty]
-    private double progressValue;
-
-    [ObservableProperty]
-    private double progressMaximum;
-
-    [ObservableProperty]
-    private bool isProgressVisible;
 
     [ObservableProperty]
     private bool isSearchEnabled = false;
 
     private readonly IAsyncRelayCommand _searchCommand;
 
-    /// <summary>
-    /// Command to search images
-    /// </summary>
+    public ImageSearchViewModel(
+        INavigationService navigationService,
+        IGeminiService geminiService,
+        IFileService fileService,
+        IConfigurationService configurationService,
+        IImageProcessingService imageProcessingService,
+        ILogger<ImageSearchViewModel> logger)
+        : base(navigationService, fileService, configurationService, logger)
+    {
+        _geminiService = geminiService;
+        _imageProcessingService = imageProcessingService;
+        
+        _searchCommand = new AsyncRelayCommand(SearchImagesAsync, () => IsSearchEnabled);
+    }
+
     public IAsyncRelayCommand SearchCommand => _searchCommand;
 
-    /// <summary>
-    /// Command to browse for source folder
-    /// </summary>
-    public IRelayCommand BrowseSourceCommand => new RelayCommand(() =>
-    {
-        var dialog = new OpenFolderDialog();
-        if (dialog.ShowDialog() == true)
-        {
-            SourceFolder = dialog.FolderName;
-            // Load images asynchronously - CheckReady() is called after loading completes
-            _ = LoadImagesAsync(SourceFolder);
-        }
-    });
+    protected override IAsyncRelayCommand? MainCommand => _searchCommand;
 
-    /// <summary>
-    /// Command to browse for output folder
-    /// </summary>
-    public IRelayCommand BrowseOutputCommand => new RelayCommand(() =>
+    protected override void OnCancelOperation()
     {
-        var dialog = new OpenFolderDialog();
-        if (dialog.ShowDialog() == true)
-        {
-            OutputFolder = dialog.FolderName;
-            CheckReady();
-        }
-    });
+        IsSearchEnabled = true;
+    }
 
-    /// <summary>
-    /// Command to clear the list
-    /// </summary>
-    public IRelayCommand ClearListCommand => new RelayCommand(() =>
+    protected override void ClearAllData()
     {
-        MatchedImages.Clear();
-        SourceFolder = string.Empty;
-        OutputFolder = string.Empty;
+        base.ClearAllData();
         SearchDescription = string.Empty;
-        StatusText = string.Empty;
         ProgressText = string.Empty;
-        ProgressValue = 0;
-        IsProgressVisible = false;
-        CheckReady();
-    });
+    }
 
-    /// <summary>
-    /// Command to navigate back to home
-    /// </summary>
-    public IRelayCommand BackToHomeCommand => new RelayCommand(() =>
+    protected override void OnClearList()
     {
-        _navigationService.NavigateToWelcome();
-    });
+        OnReadyStateChanged();
+    }
 
-    /// <summary>
-    /// Command to copy selected images
-    /// </summary>
     public IRelayCommand CopySelectedCommand => new RelayCommand(() => _ = CopySelectedImagesAsync());
 
-    /// <summary>
-    /// Command to open an image
-    /// </summary>
-    public IRelayCommand<ImageItem> OpenImageCommand => new RelayCommand<ImageItem>(item =>
-    {
-        if (item != null)
-        {
-            try
-            {
-                Process.Start(new ProcessStartInfo(item.FilePath) { UseShellExecute = true });
-            }
-            catch
-            {
-                // Silently fail
-            }
-        }
-    });
+    protected override ObservableCollection<ImageItem> ImagesCollection => MatchedImages;
 
-    /// <summary>
-    /// Handles search description text changes
-    /// </summary>
-    partial void OnSearchDescriptionChanged(string value)
-    {
-        CheckReady();
-    }
+    protected override bool ShouldSetSelectedOnLoad() => true;
 
-    /// <summary>
-    /// Handles output folder changes
-    /// </summary>
-    partial void OnOutputFolderChanged(string value)
-    {
-        CheckReady();
-    }
-
-    /// <summary>
-    /// Handles source folder changes
-    /// </summary>
-    partial void OnSourceFolderChanged(string value)
-    {
-        // SourceFolder changes trigger LoadImagesAsync which calls CheckReady() after loading
-        // No need to check here as images haven't loaded yet
-    }
-
-    private async Task LoadApiKeysAsync()
-    {
-        try
-        {
-            var keys = await _configurationService.GetApiKeysAsync();
-            ApiKeys = string.Join(Environment.NewLine, keys);
-        }
-        catch
-        {
-            // Silently fail
-        }
-    }
-
-    private async Task LoadImagesAsync(string folder)
-    {
-        try
-        {
-            MatchedImages.Clear();
-            var extensions = _configurationService.GetSupportedExtensions();
-            var files = await _fileService.LoadImageFilesAsync(folder, extensions);
-
-            foreach (var file in files)
-            {
-                MatchedImages.Add(new ImageItem
-                {
-                    FilePath = file,
-                    OriginalName = Path.GetFileNameWithoutExtension(file),
-                    Status = "في الانتظار",
-                    IsSelected = true
-                });
-            }
-
-            StatusText = $"تم تحميل {MatchedImages.Count} صورة.";
-        }
-        catch (Exception ex)
-        {
-            StatusText = $"حدث خطأ أثناء تحميل الصور: {ex.Message}";
-            MatchedImages.Clear();
-        }
-        finally
-        {
-            // Always check ready state after loading attempt
-            CheckReady();
-        }
-    }
-
-    private void CheckReady()
+    protected override void OnReadyStateChanged()
     {
         IsSearchEnabled = MatchedImages.Count > 0
             && !string.IsNullOrWhiteSpace(OutputFolder)
             && !string.IsNullOrWhiteSpace(SearchDescription);
-        _searchCommand.NotifyCanExecuteChanged();
+        NotifyCommands();
+    }
+
+    partial void OnSearchDescriptionChanged(string value)
+    {
+        OnReadyStateChanged();
     }
 
     private async Task SearchImagesAsync()
     {
-        var apiKeysArray = ApiKeys.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+        var apiKeysArray = ValidateAndSetupApiKeys();
         if (apiKeysArray.Length == 0)
         {
-            ShowError("الرجاء إدخال مفتاح Gemini API واحد على الأقل.", "خطأ");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(SearchDescription))
         {
-            ShowError("الرجاء إدخال وصف البحث.", "خطأ");
+            ShowError(ErrorMessages.NoSearchDescription, "خطأ");
             return;
         }
 
         await _configurationService.SaveApiKeysAsync(apiKeysArray);
 
-        if (!Directory.Exists(OutputFolder))
+        if (!EnsureOutputFolderExists())
         {
-            try
-            {
-                Directory.CreateDirectory(OutputFolder);
-            }
-            catch
-            {
-                ShowError("تعذر إنشاء مجلد الإخراج.", "خطأ");
-                return;
-            }
+            return;
         }
 
-        // Set API keys on service
-        if (_geminiService is Infrastructure.Services.GeminiService geminiServiceImpl)
-        {
-            geminiServiceImpl.SetApiKeys(apiKeysArray);
-        }
+        _geminiService.SetApiKeys(apiKeysArray);
 
         IsSearchEnabled = false;
-        _searchCommand.NotifyCanExecuteChanged();
-        IsProgressVisible = true;
-        ProgressMaximum = MatchedImages.Count;
-        ProgressValue = 0;
-
-        _cancellationTokenSource = new CancellationTokenSource();
-        var cancellationToken = _cancellationTokenSource.Token;
+        StartProcessing(MatchedImages.Count);
+        var cancellationToken = _cancellationTokenSource!.Token;
 
         var searchDescription = SearchDescription;
         var usedNames = new Dictionary<string, int>();
@@ -289,58 +123,27 @@ public partial class ImageSearchViewModel : ViewModelBase
                 if (cancellationToken.IsCancellationRequested)
                     break;
 
-                img.Status = "جاري المعالجة...";
+                img.Status = ImageStatusConstants.Processing;
                 ProgressText = $"جاري المعالجة {processedCount + 1} من {MatchedImages.Count}...";
 
-                try
+                var result = await _imageProcessingService.ProcessImageForSearchAsync(
+                    img,
+                    searchDescription,
+                    OutputFolder,
+                    usedNames,
+                    _geminiService,
+                    _fileService,
+                    cancellationToken);
+
+                img.Status = result.Status;
+                
+                if (result.IsMatch)
                 {
-                    var result = await _geminiService.SearchImageAsync(img.FilePath, searchDescription, cancellationToken);
-
-                    if (result.IsMatch)
-                    {
-                        img.Status = "مطابق";
-                        matchedCount++;
-
-                        // Generate name if not provided
-                        if (string.IsNullOrWhiteSpace(result.SuggestedName))
-                        {
-                            result.SuggestedName = await _geminiService.GenerateTitleAsync(img.FilePath, cancellationToken: cancellationToken);
-                        }
-
-                        var sanitized = _fileService.SanitizeFilename(result.SuggestedName ?? "صورة");
-                        var baseName = sanitized;
-                        int counter = 0;
-
-                        if (usedNames.ContainsKey(baseName))
-                        {
-                            counter = usedNames[baseName];
-                        }
-                        usedNames[baseName] = counter + 1;
-
-                        if (counter > 0)
-                        {
-                            sanitized = $"{baseName}_{counter}";
-                        }
-
-                        var ext = Path.GetExtension(img.FilePath);
-                        var uniquePath = _fileService.EnsureUniqueFilename(OutputFolder, sanitized, ext);
-                        var newFileName = Path.GetFileName(uniquePath);
-                        img.NewName = newFileName;
-                    }
-                    else
-                    {
-                        img.Status = "غير مطابق";
-                        img.IsSelected = false;
-                    }
+                    matchedCount++;
+                    img.NewName = result.NewName;
                 }
-                catch (OperationCanceledException)
+                else
                 {
-                    img.Status = "ملغي";
-                    break;
-                }
-                catch (Exception)
-                {
-                    img.Status = "خطأ";
                     img.IsSelected = false;
                 }
 
@@ -350,11 +153,11 @@ public partial class ImageSearchViewModel : ViewModelBase
         }
         finally
         {
-            IsProgressVisible = false;
             IsSearchEnabled = true;
-            _searchCommand.NotifyCanExecuteChanged();
-            StatusText = $"اكتمل البحث! تم العثور على {matchedCount} صورة مطابقة من أصل {MatchedImages.Count}.";
             ProgressText = $"مطابق: {matchedCount} / {MatchedImages.Count}";
+            var message = string.Format(SuccessMessages.SearchCompleted, matchedCount, MatchedImages.Count);
+            EndProcessing(message);
+            _logger.LogInformation("Search completed. Found {MatchedCount} matches out of {TotalCount}", matchedCount, MatchedImages.Count);
         }
     }
 
@@ -362,15 +165,15 @@ public partial class ImageSearchViewModel : ViewModelBase
     {
         if (!Directory.Exists(OutputFolder))
         {
-            ShowError("الرجاء اختيار مجلد الإخراج أولاً.", "خطأ");
+            ShowError(ErrorMessages.NoOutputFolder, "خطأ");
             return;
         }
 
-        var selectedImages = MatchedImages.Where(i => i.IsSelected && i.Status == "مطابق").ToList();
+        var selectedImages = MatchedImages.Where(i => i.IsSelected && i.Status == ImageStatusConstants.Matched).ToList();
 
         if (selectedImages.Count == 0)
         {
-            ShowWarning("الرجاء تحديد صورة واحدة على الأقل للنسخ.", "تنبيه");
+            ShowWarning(ErrorMessages.NoImagesSelected, "تنبيه");
             return;
         }
 
@@ -386,33 +189,34 @@ public partial class ImageSearchViewModel : ViewModelBase
                     ? img.NewName
                     : Path.GetFileName(img.FilePath);
 
-                var destPath = Path.Combine(OutputFolder, fileName);
                 var uniquePath = _fileService.EnsureUniqueFilename(OutputFolder, Path.GetFileNameWithoutExtension(fileName), ext);
 
                 await _fileService.CopyFileAsync(img.FilePath, uniquePath, true);
                 img.NewName = Path.GetFileName(uniquePath);
-                img.Status = "تم النسخ";
+                img.Status = ImageStatusConstants.Copied;
                 copiedCount++;
             }
-            catch
+            catch (Exception ex)
             {
-                img.Status = "خطأ في النسخ";
+                _logger.LogWarning(ex, "Failed to copy image: {FilePath}", img.FilePath);
+                img.Status = ImageStatusConstants.CopyError;
                 skippedCount++;
             }
         }
 
         string message = copiedCount > 0
-            ? $"تم نسخ {copiedCount} صورة بنجاح إلى مجلد الإخراج."
-            : "لم يتم نسخ أي صورة.";
+            ? string.Format(SuccessMessages.ImagesCopied, copiedCount)
+            : SuccessMessages.NoImagesCopied;
 
         if (skippedCount > 0)
         {
-            message += $"\n{skippedCount} صورة فشل نسخها.";
+            message += $"\n{string.Format(SuccessMessages.CopyFailed, skippedCount)}";
         }
 
         if (copiedCount > 0)
         {
             ShowInfo(message, "نجح");
+            _logger.LogInformation("Copied {Count} images successfully", copiedCount);
         }
         else
         {

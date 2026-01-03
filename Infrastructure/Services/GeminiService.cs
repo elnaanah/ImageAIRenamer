@@ -10,31 +10,26 @@ using Microsoft.Extensions.Logging;
 
 namespace ImageAIRenamer.Infrastructure.Services;
 
-/// <summary>
-/// Service implementation for interacting with Google Gemini AI API
-/// </summary>
 public class GeminiService : IGeminiService
 {
     private readonly IConfigurationService _configurationService;
     private readonly ILogger<GeminiService> _logger;
+    private readonly IHttpClientFactory _httpClientFactory;
     private int _currentKeyIndex = 0;
     private string[] _apiKeys = Array.Empty<string>();
-    private readonly HttpClient _httpClient;
 
     public GeminiService(
         IConfigurationService configurationService,
-        ILogger<GeminiService> logger)
+        ILogger<GeminiService> logger,
+        IHttpClientFactory httpClientFactory)
     {
         _configurationService = configurationService;
         _logger = logger;
-        _httpClient = new HttpClient();
+        _httpClientFactory = httpClientFactory;
     }
 
-    /// <summary>
-    /// Sets the API keys to use for requests (internal method for ViewModels)
-    /// </summary>
-    /// <param name="apiKeys">Array of API keys</param>
-    internal void SetApiKeys(string[] apiKeys)
+    /// <inheritdoc/>
+    public void SetApiKeys(string[] apiKeys)
     {
         _apiKeys = apiKeys.Where(k => !string.IsNullOrWhiteSpace(k)).ToArray();
         _currentKeyIndex = 0;
@@ -134,7 +129,7 @@ public class GeminiService : IGeminiService
 
     private async Task<string> CallGenerateApiAsync(string apiKey, string imagePath, string? customInstructions, string model, string defaultPrompt, CancellationToken cancellationToken)
     {
-        var httpClient = _httpClient;
+        using var httpClient = _httpClientFactory.CreateClient();
         
         var bytes = await File.ReadAllBytesAsync(imagePath, cancellationToken);
         var base64 = Convert.ToBase64String(bytes);
@@ -198,7 +193,7 @@ public class GeminiService : IGeminiService
 
     private async Task<SearchResult> CallSearchApiAsync(string apiKey, string imagePath, string searchDescription, string model, CancellationToken cancellationToken)
     {
-        var httpClient = _httpClient;
+        using var httpClient = _httpClientFactory.CreateClient();
         
         var bytes = await File.ReadAllBytesAsync(imagePath, cancellationToken);
         var base64 = Convert.ToBase64String(bytes);

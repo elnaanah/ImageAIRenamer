@@ -22,4 +22,10 @@ public interface IGeminiService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Search result indicating if the image matches</returns>
     Task<Domain.Entities.SearchResult> SearchImageAsync(string imagePath, string searchDescription, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sets the API keys to use for requests
+    /// </summary>
+    /// <param name="apiKeys">Array of API keys</param>
+    void SetApiKeys(string[] apiKeys);
 }

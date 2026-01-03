@@ -1,14 +1,12 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using ImageAIRenamer.Application.Common;
 
 namespace ImageAIRenamer.Domain.Entities;
 
-/// <summary>
-/// Represents an image item with status tracking
-/// </summary>
 public class ImageItem : INotifyPropertyChanged
 {
-    private string _status = "Pending";
+    private string _status = ImageStatusConstants.Pending;
     private string _newName = "";
     private bool _isSelected = true;
     

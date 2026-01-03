@@ -106,8 +106,28 @@
                         </ProgressBar>
                         <TextBlock Margin="0,4,0,8" Foreground="{StaticResource TextSecondaryColor}" FontSize="12"
                                    Text="{Binding ProgressText}"/>
-                        <Button Content="🔍 بدء البحث" Command="{Binding SearchCommand}" 
-                                Style="{StaticResource ModernButtonStyle}" Margin="0,18,0,0"/>
+                        <Grid Margin="0,18,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Content="🔍 بدء البحث" Command="{Binding SearchCommand}" 
+                                    Style="{StaticResource ModernButtonStyle}" Grid.Column="0"/>
+                            <Button Content="❌ إلغاء" Command="{Binding CancelCommand}" 
+                                    Style="{StaticResource SecondaryButtonStyle}" Grid.Column="2">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsProgressVisible}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
                     </StackPanel>
                 </Border>
             </StackPanel>
