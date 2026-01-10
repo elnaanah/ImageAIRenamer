@@ -143,6 +143,35 @@
                                            Foreground="{StaticResource TextPrimaryColor}" 
                                            FontSize="13"
                                            Text="{Binding StatusText}"/>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Foreground="{StaticResource TextSecondaryColor}" 
+                                               FontSize="11"
+                                               Text="{Binding ProgressText}"/>
+                                    <TextBlock Grid.Column="1"
+                                               Foreground="{StaticResource TextSecondaryColor}" 
+                                               FontSize="11"
+                                               FontWeight="Medium"
+                                               Text="{Binding ElapsedTime, StringFormat='⏱️ {0}'}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ElapsedTime}" Value="">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ElapsedTime}" Value="{x:Null}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
                                 <ProgressBar Height="6"
                                              Background="{StaticResource BorderColor}" 
                                              Foreground="{StaticResource PrimaryColor}"
@@ -296,6 +325,10 @@
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Status}" Value="خطأ">
                                                 <Setter Property="Foreground" Value="{StaticResource ErrorColor}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Status}" Value="نفاذ الحصة">
+                                                <Setter Property="Foreground" Value="{StaticResource ErrorColor}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Status}" Value="جاري إعادة التسمية...">
                                                 <Setter Property="Foreground" Value="{StaticResource PrimaryColor}"/>

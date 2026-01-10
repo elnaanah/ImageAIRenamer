@@ -88,6 +88,15 @@ public class ImageProcessingService : IImageProcessingService
                 Status = ImageStatusConstants.Cancelled
             };
         }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("نفاذ"))
+        {
+            _logger.LogWarning("Quota exceeded while processing image for rename: {FilePath}", imageItem.FilePath);
+            return new ProcessRenameResult
+            {
+                Success = false,
+                Status = ImageStatusConstants.QuotaExceeded
+            };
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing image for rename: {FilePath}", imageItem.FilePath);
@@ -156,6 +165,15 @@ public class ImageProcessingService : IImageProcessingService
                 Status = ImageStatusConstants.Cancelled
             };
         }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("نفاذ"))
+        {
+            _logger.LogWarning("Quota exceeded while processing image for search: {FilePath}", imageItem.FilePath);
+            return new ProcessSearchResult
+            {
+                IsMatch = false,
+                Status = ImageStatusConstants.QuotaExceeded
+            };
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing image for search: {FilePath}", imageItem.FilePath);
@@ -205,6 +223,15 @@ public class ImageProcessingService : IImageProcessingService
             {
                 Success = false,
                 Status = ImageStatusConstants.Cancelled
+            };
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("نفاذ"))
+        {
+            _logger.LogWarning("Quota exceeded while processing image for rename: {FilePath}", imageItem.FilePath);
+            return new ProcessRenameResult
+            {
+                Success = false,
+                Status = ImageStatusConstants.QuotaExceeded
             };
         }
         catch (Exception ex)
@@ -273,6 +300,15 @@ public class ImageProcessingService : IImageProcessingService
             {
                 IsMatch = false,
                 Status = ImageStatusConstants.Cancelled
+            };
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("نفاذ"))
+        {
+            _logger.LogWarning("Quota exceeded while processing image for search: {FilePath}", imageItem.FilePath);
+            return new ProcessSearchResult
+            {
+                IsMatch = false,
+                Status = ImageStatusConstants.QuotaExceeded
             };
         }
         catch (Exception ex)

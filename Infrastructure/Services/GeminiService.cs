@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ImageAIRenamer.Application.Common;
 using ImageAIRenamer.Domain.Entities;
 using ImageAIRenamer.Domain.Interfaces;
 using ImageAIRenamer.Infrastructure.Configuration;
@@ -18,6 +19,9 @@ public class GeminiService : IGeminiService
     private int _currentKeyIndex = 0;
     private string[] _apiKeys = Array.Empty<string>();
     private int _parallelKeyIndex = 0;
+    private readonly List<string> _availableKeys = new();
+    private readonly List<string> _exhaustedKeys = new();
+    private readonly object _keysLock = new();
 
     public GeminiService(
         IConfigurationService configurationService,
@@ -32,10 +36,16 @@ public class GeminiService : IGeminiService
     /// <inheritdoc/>
     public void SetApiKeys(string[] apiKeys)
     {
-        _apiKeys = apiKeys.Where(k => !string.IsNullOrWhiteSpace(k)).ToArray();
-        _currentKeyIndex = 0;
-        _parallelKeyIndex = 0;
-        _logger.LogInformation("API keys configured. {Count} keys available.", _apiKeys.Length);
+        lock (_keysLock)
+        {
+            _apiKeys = apiKeys.Where(k => !string.IsNullOrWhiteSpace(k)).ToArray();
+            _currentKeyIndex = 0;
+            _parallelKeyIndex = 0;
+            _availableKeys.Clear();
+            _exhaustedKeys.Clear();
+            _availableKeys.AddRange(_apiKeys);
+            _logger.LogInformation("API keys configured. {Count} keys available.", _apiKeys.Length);
+        }
     }
 
     /// <inheritdoc/>
@@ -83,47 +93,97 @@ public class GeminiService : IGeminiService
         var model = _configurationService.GetGeminiModel();
         var defaultPrompt = ((ConfigurationService)_configurationService).GetDefaultPrompt();
 
-        int attempts = 0;
-        int maxAttempts = _apiKeys.Length;
-        int currentAttemptIndex = apiKeyIndex.HasValue ? apiKeyIndex.Value : _currentKeyIndex;
-
-        while (attempts < maxAttempts)
+        if (apiKeyIndex.HasValue)
         {
-            string apiKey = _apiKeys[currentAttemptIndex % _apiKeys.Length];
-            try
+            int attempts = 0;
+            int maxAttempts = _apiKeys.Length;
+            int currentAttemptIndex = apiKeyIndex.Value;
+
+            while (attempts < maxAttempts)
             {
-                _logger.LogDebug("Generating title for image: {ImagePath} using key index {Index}", imagePath, currentAttemptIndex % _apiKeys.Length);
-                return await CallGenerateApiAsync(apiKey, imagePath, customInstructions, model, defaultPrompt, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                string msg = ex.Message.ToLower();
-                if (msg.Contains("429") || msg.Contains("quota") || msg.Contains("resource_exhausted") || msg.Contains("rate limit"))
+                string apiKey = _apiKeys[currentAttemptIndex % _apiKeys.Length];
+                try
                 {
-                    _logger.LogWarning("API key {Index} quota exceeded, rotating to next key", currentAttemptIndex % _apiKeys.Length);
-                    currentAttemptIndex++;
-                    attempts++;
-                    
-                    // If we are in sequential mode (no specific index requested), update the global index
-                    if (!apiKeyIndex.HasValue)
+                    _logger.LogDebug("Generating title for image: {ImagePath} using key index {Index}", imagePath, currentAttemptIndex % _apiKeys.Length);
+                    return await CallGenerateApiAsync(apiKey, imagePath, customInstructions, model, defaultPrompt, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    string msg = ex.Message.ToLower();
+                    if (msg.Contains("429") || msg.Contains("quota") || msg.Contains("resource_exhausted") || msg.Contains("rate limit") || msg.Contains("نفاذ"))
                     {
-                        _currentKeyIndex = (_currentKeyIndex + 1) % _apiKeys.Length;
+                        _logger.LogWarning("API key {Index} quota exceeded, rotating to next key", currentAttemptIndex % _apiKeys.Length);
+                        currentAttemptIndex++;
+                        attempts++;
+                        
+                        if (attempts >= maxAttempts)
+                        {
+                            _logger.LogError("All API keys exhausted");
+                            throw new InvalidOperationException(ErrorMessages.QuotaExceeded, ex);
+                        }
                     }
-                    
-                    if (attempts >= maxAttempts)
+                    else
                     {
-                        _logger.LogError("All API keys exhausted");
-                        throw new InvalidOperationException("All API keys exhausted.", ex);
+                        _logger.LogError(ex, "Error generating title for image: {ImagePath}", imagePath);
+                        throw;
                     }
                 }
-                else
-                {
-                    _logger.LogError(ex, "Error generating title for image: {ImagePath}", imagePath);
-                    throw;
-                }
             }
+            throw new InvalidOperationException("Failed to generate title.");
         }
-        throw new InvalidOperationException("Failed to generate title.");
+        else
+        {
+            int maxAttempts = _apiKeys.Length;
+            int attempts = 0;
+            string? usedKey = null;
+
+            while (attempts < maxAttempts)
+            {
+                var apiKey = GetNextAvailableKey();
+                if (apiKey == null)
+                {
+                    _logger.LogError("All API keys exhausted");
+                    throw new InvalidOperationException(ErrorMessages.QuotaExceeded);
+                }
+
+                usedKey = apiKey;
+                var keyIndex = GetKeyIndexInOriginalArray(apiKey);
+
+                try
+                {
+                    _logger.LogDebug("Generating title for image: {ImagePath} using key index {Index}", imagePath, keyIndex);
+                    var result = await CallGenerateApiAsync(apiKey, imagePath, customInstructions, model, defaultPrompt, cancellationToken);
+                    MarkKeyAsSuccessful(apiKey);
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    string msg = ex.Message.ToLower();
+                    if (msg.Contains("429") || msg.Contains("quota") || msg.Contains("resource_exhausted") || msg.Contains("rate limit") || msg.Contains("نفاذ"))
+                    {
+                        _logger.LogWarning("API key {Index} quota exceeded, marking as exhausted", keyIndex);
+                        MarkKeyAsExhausted(apiKey);
+                        attempts++;
+                        
+                        if (attempts >= maxAttempts)
+                        {
+                            _logger.LogError("All API keys exhausted");
+                            throw new InvalidOperationException(ErrorMessages.QuotaExceeded, ex);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogError(ex, "Error generating title for image: {ImagePath}", imagePath);
+                        if (usedKey != null)
+                        {
+                            MarkKeyAsSuccessful(usedKey);
+                        }
+                        throw;
+                    }
+                }
+            }
+            throw new InvalidOperationException("Failed to generate title.");
+        }
     }
 
     /// <inheritdoc/>
@@ -142,47 +202,97 @@ public class GeminiService : IGeminiService
 
         var model = _configurationService.GetGeminiModel();
 
-        int attempts = 0;
-        int maxAttempts = _apiKeys.Length;
-        int currentAttemptIndex = apiKeyIndex.HasValue ? apiKeyIndex.Value : _currentKeyIndex;
-
-        while (attempts < maxAttempts)
+        if (apiKeyIndex.HasValue)
         {
-            string apiKey = _apiKeys[currentAttemptIndex % _apiKeys.Length];
-            try
+            int attempts = 0;
+            int maxAttempts = _apiKeys.Length;
+            int currentAttemptIndex = apiKeyIndex.Value;
+
+            while (attempts < maxAttempts)
             {
-                _logger.LogDebug("Searching image: {ImagePath} for: {Description} using key index {Index}", imagePath, searchDescription, currentAttemptIndex % _apiKeys.Length);
-                return await CallSearchApiAsync(apiKey, imagePath, searchDescription, model, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                string msg = ex.Message.ToLower();
-                if (msg.Contains("429") || msg.Contains("quota") || msg.Contains("resource_exhausted") || msg.Contains("rate limit"))
+                string apiKey = _apiKeys[currentAttemptIndex % _apiKeys.Length];
+                try
                 {
-                    _logger.LogWarning("API key {Index} quota exceeded, rotating to next key", currentAttemptIndex % _apiKeys.Length);
-                    currentAttemptIndex++;
-                    attempts++;
-
-                    // If we are in sequential mode (no specific index requested), update the global index
-                    if (!apiKeyIndex.HasValue)
+                    _logger.LogDebug("Searching image: {ImagePath} for: {Description} using key index {Index}", imagePath, searchDescription, currentAttemptIndex % _apiKeys.Length);
+                    return await CallSearchApiAsync(apiKey, imagePath, searchDescription, model, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    string msg = ex.Message.ToLower();
+                    if (msg.Contains("429") || msg.Contains("quota") || msg.Contains("resource_exhausted") || msg.Contains("rate limit") || msg.Contains("نفاذ"))
                     {
-                        _currentKeyIndex = (_currentKeyIndex + 1) % _apiKeys.Length;
+                        _logger.LogWarning("API key {Index} quota exceeded, rotating to next key", currentAttemptIndex % _apiKeys.Length);
+                        currentAttemptIndex++;
+                        attempts++;
+
+                        if (attempts >= maxAttempts)
+                        {
+                            _logger.LogError("All API keys exhausted");
+                            throw new InvalidOperationException(ErrorMessages.QuotaExceeded, ex);
+                        }
                     }
-
-                    if (attempts >= maxAttempts)
+                    else
                     {
-                        _logger.LogError("All API keys exhausted");
-                        throw new InvalidOperationException("All API keys exhausted.", ex);
+                        _logger.LogError(ex, "Error searching image: {ImagePath}", imagePath);
+                        throw;
                     }
                 }
-                else
-                {
-                    _logger.LogError(ex, "Error searching image: {ImagePath}", imagePath);
-                    throw;
-                }
             }
+            throw new InvalidOperationException("Failed to search image.");
         }
-        throw new InvalidOperationException("Failed to search image.");
+        else
+        {
+            int maxAttempts = _apiKeys.Length;
+            int attempts = 0;
+            string? usedKey = null;
+
+            while (attempts < maxAttempts)
+            {
+                var apiKey = GetNextAvailableKey();
+                if (apiKey == null)
+                {
+                    _logger.LogError("All API keys exhausted");
+                    throw new InvalidOperationException(ErrorMessages.QuotaExceeded);
+                }
+
+                usedKey = apiKey;
+                var keyIndex = GetKeyIndexInOriginalArray(apiKey);
+
+                try
+                {
+                    _logger.LogDebug("Searching image: {ImagePath} for: {Description} using key index {Index}", imagePath, searchDescription, keyIndex);
+                    var result = await CallSearchApiAsync(apiKey, imagePath, searchDescription, model, cancellationToken);
+                    MarkKeyAsSuccessful(apiKey);
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    string msg = ex.Message.ToLower();
+                    if (msg.Contains("429") || msg.Contains("quota") || msg.Contains("resource_exhausted") || msg.Contains("rate limit") || msg.Contains("نفاذ"))
+                    {
+                        _logger.LogWarning("API key {Index} quota exceeded, marking as exhausted", keyIndex);
+                        MarkKeyAsExhausted(apiKey);
+                        attempts++;
+                        
+                        if (attempts >= maxAttempts)
+                        {
+                            _logger.LogError("All API keys exhausted");
+                            throw new InvalidOperationException(ErrorMessages.QuotaExceeded, ex);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogError(ex, "Error searching image: {ImagePath}", imagePath);
+                        if (usedKey != null)
+                        {
+                            MarkKeyAsSuccessful(usedKey);
+                        }
+                        throw;
+                    }
+                }
+            }
+            throw new InvalidOperationException("Failed to search image.");
+        }
     }
 
     private async Task<string> CallGenerateApiAsync(string apiKey, string imagePath, string? customInstructions, string model, string defaultPrompt, CancellationToken cancellationToken)
@@ -234,6 +344,12 @@ public class GeminiService : IGeminiService
         {
             var error = await response.Content.ReadAsStringAsync(cancellationToken);
             _logger.LogError("API Error {StatusCode}: {Error}", response.StatusCode, error);
+            
+            if (IsQuotaError(response.StatusCode, error))
+            {
+                throw new InvalidOperationException(ErrorMessages.QuotaExceededSingle);
+            }
+            
             throw new HttpRequestException($"API Error {response.StatusCode}: {error}");
         }
 
@@ -304,6 +420,12 @@ Return ONLY the JSON object, no other text.";
         {
             var error = await response.Content.ReadAsStringAsync(cancellationToken);
             _logger.LogError("API Error {StatusCode}: {Error}", response.StatusCode, error);
+            
+            if (IsQuotaError(response.StatusCode, error))
+            {
+                throw new InvalidOperationException(ErrorMessages.QuotaExceededSingle);
+            }
+            
             throw new HttpRequestException($"API Error {response.StatusCode}: {error}");
         }
 
@@ -371,6 +493,130 @@ Return ONLY the JSON object, no other text.";
             SuggestedName = null,
             Reason = text
         };
+    }
+
+    private string? GetNextAvailableKey()
+    {
+        lock (_keysLock)
+        {
+            if (_availableKeys.Count == 0)
+            {
+                if (_exhaustedKeys.Count > 0)
+                {
+                    var temp = _exhaustedKeys.ToList();
+                    _exhaustedKeys.Clear();
+                    _availableKeys.AddRange(temp);
+                    _logger.LogInformation("All keys were exhausted. Resetting and trying exhausted keys again.");
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            var key = _availableKeys[0];
+            _availableKeys.RemoveAt(0);
+            return key;
+        }
+    }
+
+    private void MarkKeyAsSuccessful(string key)
+    {
+        lock (_keysLock)
+        {
+            if (_exhaustedKeys.Contains(key))
+            {
+                _exhaustedKeys.Remove(key);
+                _availableKeys.Add(key);
+            }
+            else if (_availableKeys.Contains(key))
+            {
+                var index = _availableKeys.IndexOf(key);
+                if (index >= 0)
+                {
+                    _availableKeys.RemoveAt(index);
+                }
+                _availableKeys.Add(key);
+            }
+            else
+            {
+                _availableKeys.Add(key);
+            }
+        }
+    }
+
+    private void MarkKeyAsExhausted(string key)
+    {
+        lock (_keysLock)
+        {
+            _availableKeys.Remove(key);
+            if (!_exhaustedKeys.Contains(key))
+            {
+                _exhaustedKeys.Add(key);
+            }
+            _logger.LogWarning("Key marked as exhausted. Available: {Available}, Exhausted: {Exhausted}", _availableKeys.Count, _exhaustedKeys.Count);
+        }
+    }
+
+    private int GetKeyIndexInOriginalArray(string key)
+    {
+        lock (_keysLock)
+        {
+            for (int i = 0; i < _apiKeys.Length; i++)
+            {
+                if (_apiKeys[i] == key)
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+    }
+
+    private static bool IsQuotaError(System.Net.HttpStatusCode statusCode, string errorContent)
+    {
+        if (statusCode == System.Net.HttpStatusCode.TooManyRequests)
+        {
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(errorContent))
+        {
+            return false;
+        }
+
+        var errorLower = errorContent.ToLower();
+
+        if (errorLower.Contains("429") || 
+            errorLower.Contains("resource_exhausted") ||
+            errorLower.Contains("quota") && (errorLower.Contains("exceeded") || errorLower.Contains("limit")))
+        {
+            return true;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(errorContent);
+            if (doc.RootElement.TryGetProperty("error", out var errorObj))
+            {
+                if (errorObj.TryGetProperty("status", out var status) && 
+                    status.GetString()?.ToUpper() == "RESOURCE_EXHAUSTED")
+                {
+                    return true;
+                }
+
+                if (errorObj.TryGetProperty("code", out var code) && 
+                    code.GetInt32() == 429)
+                {
+                    return true;
+                }
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        return false;
     }
 
     private static string GetMimeType(string ext) => ext.ToLower() switch

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ImageAIRenamer.Domain.Entities;
@@ -55,6 +56,12 @@ public abstract partial class ImageProcessingViewModelBase : ViewModelBase, IDis
 
     [ObservableProperty]
     protected bool enableSpeedBoost = false;
+
+    [ObservableProperty]
+    protected string elapsedTime = string.Empty;
+
+    private DateTime? _processingStartTime;
+    private System.Timers.Timer? _elapsedTimeTimer;
 
     protected abstract ObservableCollection<ImageItem> ImagesCollection { get; }
 
@@ -134,10 +141,16 @@ public abstract partial class ImageProcessingViewModelBase : ViewModelBase, IDis
 
     protected virtual void ClearAllData()
     {
+        _elapsedTimeTimer?.Stop();
+        _elapsedTimeTimer?.Dispose();
+        _elapsedTimeTimer = null;
+        _processingStartTime = null;
+        
         ImagesCollection.Clear();
         SourceFolder = string.Empty;
         OutputFolder = string.Empty;
         StatusText = string.Empty;
+        ElapsedTime = string.Empty;
         ProgressValue = 0;
         IsProgressVisible = false;
     }
@@ -255,11 +268,41 @@ public abstract partial class ImageProcessingViewModelBase : ViewModelBase, IDis
         ProgressValue = 0;
         _cancellationTokenSource?.Dispose();
         _cancellationTokenSource = new CancellationTokenSource();
+        _processingStartTime = DateTime.Now;
+        ElapsedTime = "00:00:00";
+        
+        _elapsedTimeTimer?.Stop();
+        _elapsedTimeTimer?.Dispose();
+        _elapsedTimeTimer = new System.Timers.Timer(100);
+        _elapsedTimeTimer.Elapsed += (sender, e) =>
+        {
+            if (_processingStartTime.HasValue)
+            {
+                var elapsed = DateTime.Now - _processingStartTime.Value;
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ElapsedTime = $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}";
+                });
+            }
+        };
+        _elapsedTimeTimer.Start();
+        
         NotifyCommands();
     }
 
     protected void EndProcessing(string completionMessage)
     {
+        _elapsedTimeTimer?.Stop();
+        _elapsedTimeTimer?.Dispose();
+        _elapsedTimeTimer = null;
+        
+        if (_processingStartTime.HasValue)
+        {
+            var elapsed = DateTime.Now - _processingStartTime.Value;
+            ElapsedTime = $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}";
+            _processingStartTime = null;
+        }
+        
         IsProgressVisible = false;
         StatusText = completionMessage;
         NotifyCommands();
@@ -277,6 +320,9 @@ public abstract partial class ImageProcessingViewModelBase : ViewModelBase, IDis
 
     public void Dispose()
     {
+        _elapsedTimeTimer?.Stop();
+        _elapsedTimeTimer?.Dispose();
+        _elapsedTimeTimer = null;
         _cancellationTokenSource?.Dispose();
         _cancellationTokenSource = null;
     }

@@ -208,6 +208,17 @@ public partial class ImageRenameViewModel : ImageProcessingViewModelBase
                         ProgressValue = currentCount;
                     });
                 }
+                catch (InvalidOperationException ex) when (ex.Message.Contains("نفاذ"))
+                {
+                    _logger.LogWarning("Quota exceeded while processing image in parallel: {FilePath}", image.FilePath);
+                    var currentCount = Interlocked.Increment(ref processedCount);
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        image.Status = ImageStatusConstants.QuotaExceeded;
+                        ProgressText = $"جاري إعادة التسمية {currentCount} من {Images.Count}...";
+                        ProgressValue = currentCount;
+                    });
+                }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error processing image in parallel: {FilePath}", image.FilePath);

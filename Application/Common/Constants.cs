@@ -12,6 +12,7 @@ public static class ImageStatusConstants
     public const string Cancelled = "ملغي";
     public const string Copied = "تم النسخ";
     public const string CopyError = "خطأ في النسخ";
+    public const string QuotaExceeded = "نفاذ الحصة";
 }
 
 public static class ErrorMessages
@@ -22,6 +23,8 @@ public static class ErrorMessages
     public const string NoOutputFolder = "الرجاء اختيار مجلد الإخراج أولاً.";
     public const string NoImagesSelected = "الرجاء تحديد صورة واحدة على الأقل للنسخ.";
     public const string LoadImagesError = "حدث خطأ أثناء تحميل الصور: {0}";
+    public const string QuotaExceeded = "نفاذ حصة استخدام API. تم استنفاد جميع مفاتيح API المتاحة.";
+    public const string QuotaExceededSingle = "نفاذ حصة استخدام API. يرجى التحقق من حصة مفتاح API أو إضافة مفاتيح إضافية.";
 }
 
 public static class SuccessMessages
