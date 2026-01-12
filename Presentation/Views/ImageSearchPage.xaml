@@ -8,149 +8,129 @@
       Title="البحث عن الصور"
       FlowDirection="RightToLeft"
       Background="{StaticResource BackgroundColor}">
-    <Grid Margin="40">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+        <Grid Margin="40">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-        <!-- Back Button -->
-        <Button Content="🏠 الصفحة الرئيسية" 
-                Command="{Binding BackToHomeCommand}"
-                Style="{StaticResource SecondaryButtonStyle}"
-                HorizontalAlignment="Right"
-                Margin="0,0,0,20"/>
+            <!-- Back Button -->
+            <Button Content="🏠 الصفحة الرئيسية" 
+                    Command="{Binding BackToHomeCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    HorizontalAlignment="Right"
+                    Margin="0,0,0,20"/>
 
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" MaxWidth="600"/>
-                <ColumnDefinition Width="30"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="350" MaxWidth="600"/>
+                    <ColumnDefinition Width="30"/>
+                    <ColumnDefinition Width="*" MinWidth="400"/>
+                </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Column="0">
-                <!-- API Keys -->
-                <GroupBox Header="🔑 إعدادات API" Style="{StaticResource ModernGroupBoxStyle}" Margin="0,0,0,20">
-                    <StackPanel>
-                        <TextBlock Text="أدخل مفاتيح Gemini API (مفتاح واحد في كل سطر):" Margin="0,0,0,8" Foreground="{StaticResource TextPrimaryColor}" FontWeight="Medium"/>
-                        <TextBox Height="70" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" 
-                                 TextWrapping="NoWrap" Style="{StaticResource ModernTextBoxStyle}"
-                                 Text="{Binding ApiKeys, UpdateSourceTrigger=PropertyChanged}"
-                                 ToolTip="أدخل مفاتيح Gemini API الخاصة بك، مفتاح واحد في كل سطر"/>
-                        <CheckBox Content="⚡ تفعيل التسريع (استخدام API keys متوازي)" 
-                                  IsChecked="{Binding EnableSpeedBoost, UpdateSourceTrigger=PropertyChanged}"
-                                  Margin="0,12,0,0"
-                                  Foreground="{StaticResource TextPrimaryColor}"
-                                  FontWeight="Medium"
-                                  ToolTip="عند التفعيل، سيتم توزيع الصور على API keys مختلفة بشكل متوازي مما يسرع العملية. يتطلب مفتاحين API على الأقل."/>
-                    </StackPanel>
-                </GroupBox>
+                <StackPanel Grid.Column="0">
+                    <!-- API Keys -->
+                    <GroupBox Header="🔑 إعدادات API" Style="{StaticResource ModernGroupBoxStyle}" Margin="0,0,0,20">
+                        <StackPanel>
+                            <TextBlock Text="أدخل مفاتيح Gemini API (مفتاح واحد في كل سطر):" Margin="0,0,0,8" Foreground="{StaticResource TextPrimaryColor}" FontWeight="Medium"/>
+                            <TextBox Height="70" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" 
+                                     TextWrapping="NoWrap" Style="{StaticResource ModernTextBoxStyle}"
+                                     Text="{Binding ApiKeys, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="أدخل مفاتيح Gemini API الخاصة بك، مفتاح واحد في كل سطر"/>
+                            <CheckBox Content="⚡ تفعيل التسريع (استخدام API keys متوازي)" 
+                                      IsChecked="{Binding EnableSpeedBoost, UpdateSourceTrigger=PropertyChanged}"
+                                      Margin="0,12,0,0"
+                                      Foreground="{StaticResource TextPrimaryColor}"
+                                      FontWeight="Medium"
+                                      ToolTip="عند التفعيل، سيتم توزيع الصور على API keys مختلفة بشكل متوازي مما يسرع العملية. يتطلب مفتاحين API على الأقل."/>
+                        </StackPanel>
+                    </GroupBox>
 
-                <!-- Search Description -->
-                <GroupBox Header="🔍 وصف البحث" Style="{StaticResource ModernGroupBoxStyle}" Margin="0,0,0,20">
-                    <StackPanel>
-                        <TextBlock Text="صف ما تبحث عنه في الصور:" Margin="0,0,0,8" 
-                                   Foreground="{StaticResource TextPrimaryColor}" FontWeight="Medium"/>
-                        <TextBox Height="100" 
-                                 AcceptsReturn="True" VerticalScrollBarVisibility="Auto" 
-                                 TextWrapping="Wrap" Style="{StaticResource ModernTextBoxStyle}"
-                                 Text="{Binding SearchDescription, UpdateSourceTrigger=PropertyChanged}"
-                                 ToolTip="مثال: صورة تحتوي على بريد إلكتروني أو كلمة مرور، أو سيارة حمراء"/>
-                    </StackPanel>
-                </GroupBox>
+                    <!-- Search Description -->
+                    <GroupBox Header="🔍 وصف البحث" Style="{StaticResource ModernGroupBoxStyle}" Margin="0,0,0,20">
+                        <StackPanel>
+                            <TextBlock Text="صف ما تبحث عنه في الصور:" Margin="0,0,0,8" 
+                                       Foreground="{StaticResource TextPrimaryColor}" FontWeight="Medium"/>
+                            <TextBox Height="100" 
+                                     AcceptsReturn="True" VerticalScrollBarVisibility="Auto" 
+                                     TextWrapping="Wrap" Style="{StaticResource ModernTextBoxStyle}"
+                                     Text="{Binding SearchDescription, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="مثال: صورة تحتوي على بريد إلكتروني أو كلمة مرور، أو سيارة حمراء"/>
+                        </StackPanel>
+                    </GroupBox>
 
-                <!-- Folder Selection -->
-                <GroupBox Header="📁 اختيار المجلدات" Style="{StaticResource ModernGroupBoxStyle}" Margin="0,0,0,20">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="15"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-
-                        <TextBlock Text="مجلد الصور:" VerticalAlignment="Center" Grid.Row="0" Grid.Column="0" 
-                                   Foreground="{StaticResource TextPrimaryColor}" FontWeight="Medium"/>
-                        <TextBox Grid.Row="0" Grid.Column="1" Margin="12,0" Style="{StaticResource ModernTextBoxStyle}" 
-                                 IsReadOnly="True" Text="{Binding SourceFolder}"/>
-                        <Button Content="تصفح..." Command="{Binding BrowseSourceCommand}" Grid.Row="0" Grid.Column="2" 
-                                Style="{StaticResource SecondaryButtonStyle}"/>
-
-                        <TextBlock Text="مجلد الإخراج:" VerticalAlignment="Center" Grid.Row="2" Grid.Column="0" 
-                                   Foreground="{StaticResource TextPrimaryColor}" FontWeight="Medium"/>
-                        <TextBox Grid.Row="2" Grid.Column="1" Margin="12,0" Style="{StaticResource ModernTextBoxStyle}" 
-                                 IsReadOnly="True" Text="{Binding OutputFolder}"/>
-                        <Button Content="تصفح..." Command="{Binding BrowseOutputCommand}" Grid.Row="2" Grid.Column="2" 
-                                Style="{StaticResource SecondaryButtonStyle}"/>
-                    </Grid>
-                </GroupBox>
-
-                <!-- Actions -->
-                <Border Background="{StaticResource SurfaceColor}" BorderBrush="{StaticResource BorderColor}" BorderThickness="1"
-                        CornerRadius="6" Padding="18" Margin="0,0,0,0">
-                    <StackPanel>
-                        <TextBlock Text="الحالة" Foreground="{StaticResource TextSecondaryColor}" FontSize="12" FontWeight="SemiBold"/>
-                        <TextBlock Margin="0,4,0,4" Foreground="{StaticResource TextPrimaryColor}" FontSize="13"
-                                   Text="{Binding StatusText}"/>
-                        <Grid Margin="0,0,0,4">
+                    <!-- Folder Selection -->
+                    <GroupBox Header="📁 اختيار المجلدات" Style="{StaticResource ModernGroupBoxStyle}" Margin="0,0,0,20">
+                        <Grid>
                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Foreground="{StaticResource TextSecondaryColor}" 
-                                       FontSize="11"
-                                       Text="{Binding ProgressText}"/>
-                            <TextBlock Grid.Column="1"
-                                       Foreground="{StaticResource TextSecondaryColor}" 
-                                       FontSize="11"
-                                       FontWeight="Medium"
-                                       Text="{Binding ElapsedTime, StringFormat='⏱️ {0}'}">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding ElapsedTime}" Value="">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding ElapsedTime}" Value="{x:Null}">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                            </TextBlock>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="15"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="مجلد الصور:" VerticalAlignment="Center" Grid.Row="0" Grid.Column="0" 
+                                       Foreground="{StaticResource TextPrimaryColor}" FontWeight="Medium"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" Margin="12,0" Style="{StaticResource ModernTextBoxStyle}" 
+                                     IsReadOnly="True" Text="{Binding SourceFolder}"/>
+                            <Button Content="تصفح..." Command="{Binding BrowseSourceCommand}" Grid.Row="0" Grid.Column="2" 
+                                    Style="{StaticResource SecondaryButtonStyle}"/>
+
+                            <TextBlock Text="مجلد الإخراج:" VerticalAlignment="Center" Grid.Row="2" Grid.Column="0" 
+                                       Foreground="{StaticResource TextPrimaryColor}" FontWeight="Medium"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" Margin="12,0" Style="{StaticResource ModernTextBoxStyle}" 
+                                     IsReadOnly="True" Text="{Binding OutputFolder}"/>
+                            <Button Content="تصفح..." Command="{Binding BrowseOutputCommand}" Grid.Row="2" Grid.Column="2" 
+                                    Style="{StaticResource SecondaryButtonStyle}"/>
                         </Grid>
-                        <ProgressBar Height="8" 
-                                     Background="{StaticResource BorderColor}" Foreground="{StaticResource PrimaryColor}"
-                                     Maximum="{Binding ProgressMaximum}" Value="{Binding ProgressValue}">
-                            <ProgressBar.Style>
-                                <Style TargetType="ProgressBar">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsProgressVisible}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </ProgressBar.Style>
-                        </ProgressBar>
-                        <Grid Margin="0,18,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="10"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Button Content="🔍 بدء البحث" Command="{Binding SearchCommand}" 
-                                    Style="{StaticResource ModernButtonStyle}" Grid.Column="0"/>
-                            <Button Content="❌ إلغاء" Command="{Binding CancelCommand}" 
-                                    Grid.Column="2">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                    </GroupBox>
+
+                    <!-- Actions -->
+                    <Border Background="{StaticResource SurfaceColor}" BorderBrush="{StaticResource BorderColor}" BorderThickness="1"
+                            CornerRadius="6" Padding="18" Margin="0,0,0,20">
+                        <StackPanel>
+                            <TextBlock Text="الحالة" Foreground="{StaticResource TextSecondaryColor}" FontSize="12" FontWeight="SemiBold"/>
+                            <TextBlock Margin="0,4,0,4" Foreground="{StaticResource TextPrimaryColor}" FontSize="13"
+                                       Text="{Binding StatusText}"/>
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Foreground="{StaticResource TextSecondaryColor}" 
+                                           FontSize="11"
+                                           Text="{Binding ProgressText}"/>
+                                <TextBlock Grid.Column="1"
+                                           Foreground="{StaticResource TextSecondaryColor}" 
+                                           FontSize="11"
+                                           FontWeight="Medium"
+                                           Text="{Binding ElapsedTime, StringFormat='⏱️ {0}'}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ElapsedTime}" Value="">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ElapsedTime}" Value="{x:Null}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                            <ProgressBar Height="8" 
+                                         Background="{StaticResource BorderColor}" Foreground="{StaticResource PrimaryColor}"
+                                         Maximum="{Binding ProgressMaximum}" Value="{Binding ProgressValue}">
+                                <ProgressBar.Style>
+                                    <Style TargetType="ProgressBar">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsProgressVisible}" Value="True">
@@ -158,129 +138,152 @@
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
-                                </Button.Style>
-                            </Button>
-                        </Grid>
-                    </StackPanel>
-                </Border>
-            </StackPanel>
-
-            <!-- Matched Images List -->
-            <GroupBox Header="🖼️ الصور المطابقة" Grid.Column="2" Style="{StaticResource ModernGroupBoxStyle}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    <DataGrid Grid.Row="0" 
-                              AutoGenerateColumns="False" IsReadOnly="False" 
-                              CanUserAddRows="False" CanUserResizeColumns="True"
-                              BorderThickness="1" BorderBrush="{StaticResource BorderColor}"
-                              Background="White" GridLinesVisibility="Horizontal" 
-                              HorizontalGridLinesBrush="{StaticResource BorderColor}"
-                              VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                              HeadersVisibility="Column" SelectionMode="Single"
-                              ItemsSource="{Binding MatchedImages}">
-                        <DataGrid.Resources>
-                            <Style TargetType="DataGridCell">
-                                <Setter Property="Padding" Value="12,8"/>
-                                <Setter Property="VerticalAlignment" Value="Center"/>
-                                <Setter Property="BorderThickness" Value="0"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="#E3F2FD"/>
-                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryColor}"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                            <Style TargetType="DataGridColumnHeader">
-                                <Setter Property="Background" Value="#F8F9FA"/>
-                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryColor}"/>
-                                <Setter Property="FontWeight" Value="SemiBold"/>
-                                <Setter Property="HorizontalContentAlignment" Value="Right"/>
-                                <Setter Property="Padding" Value="12,10"/>
-                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
-                            </Style>
-                        </DataGrid.Resources>
-                        <DataGrid.Columns>
-                            <DataGridCheckBoxColumn Header="نسخ" Binding="{Binding IsSelected}" Width="60" CanUserResize="False"/>
-                            <DataGridTemplateColumn Header="معاينة" Width="120" CanUserResize="True">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate DataType="domain:ImageItem">
-                                        <Border Width="100" Height="80" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
-                                            <Image Source="{Binding FilePath}" Stretch="Uniform" 
-                                                   Cursor="Hand" ToolTip="انقر للفتح">
-                                                <Image.InputBindings>
-                                                    <MouseBinding Gesture="LeftClick" Command="{Binding DataContext.OpenImageCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
-                                                </Image.InputBindings>
-                                            </Image>
-                                        </Border>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="الاسم الأصلي" Binding="{Binding OriginalName}" Width="200" CanUserResize="True">
-                                <DataGridTextColumn.ElementStyle>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="TextWrapping" Value="NoWrap"/>
-                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-                                        <Setter Property="TextAlignment" Value="Right"/>
-                                    </Style>
-                                </DataGridTextColumn.ElementStyle>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Header="الاسم الجديد" Binding="{Binding NewName}" Width="200" CanUserResize="True">
-                                <DataGridTextColumn.ElementStyle>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="TextWrapping" Value="NoWrap"/>
-                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-                                        <Setter Property="TextAlignment" Value="Right"/>
-                                    </Style>
-                                </DataGridTextColumn.ElementStyle>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Header="الحالة" Binding="{Binding Status}" Width="150" CanUserResize="True">
-                                <DataGridTextColumn.ElementStyle>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="FontWeight" Value="Medium"/>
-                                        <Setter Property="TextAlignment" Value="Right"/>
-                                        <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Status}" Value="مطابق">
-                                            <Setter Property="Foreground" Value="{StaticResource SuccessColor}"/>
-                                            <Setter Property="FontWeight" Value="SemiBold"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding Status}" Value="غير مطابق">
-                                            <Setter Property="Foreground" Value="{StaticResource TextSecondaryColor}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding Status}" Value="جاري المعالجة...">
-                                            <Setter Property="Foreground" Value="{StaticResource PrimaryColor}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding Status}" Value="خطأ">
-                                            <Setter Property="Foreground" Value="{StaticResource ErrorColor}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding Status}" Value="نفاذ الحصة">
-                                            <Setter Property="Foreground" Value="{StaticResource ErrorColor}"/>
-                                            <Setter Property="FontWeight" Value="SemiBold"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding Status}" Value="تم النسخ">
-                                            <Setter Property="Foreground" Value="{StaticResource SuccessColor}"/>
-                                            <Setter Property="FontWeight" Value="SemiBold"/>
-                                        </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </DataGridTextColumn.ElementStyle>
-                            </DataGridTextColumn>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                    <Border Grid.Row="1" Background="{StaticResource SurfaceColor}" BorderBrush="{StaticResource BorderColor}" 
-                            BorderThickness="0,1,0,0" Padding="10" Margin="0,10,0,0">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                            <Button Content="📋 نسخ الصور المحددة" Command="{Binding CopySelectedCommand}" 
-                                    Style="{StaticResource ModernButtonStyle}" Margin="0,0,10,0" FontSize="14" Padding="20,10"/>
-                            <Button Content="🗑️ مسح الكل" Command="{Binding ClearListCommand}" 
-                                    Style="{StaticResource SecondaryButtonStyle}"/>
+                                </ProgressBar.Style>
+                            </ProgressBar>
+                            <Grid Margin="0,18,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Content="🔍 بدء البحث" Command="{Binding SearchCommand}" 
+                                        Style="{StaticResource ModernButtonStyle}" Grid.Column="0"/>
+                                <Button Content="❌ إلغاء" Command="{Binding CancelCommand}" 
+                                        Grid.Column="2">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsProgressVisible}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </Grid>
                         </StackPanel>
                     </Border>
-                </Grid>
-            </GroupBox>
+                </StackPanel>
+
+                <!-- Matched Images List -->
+                <GroupBox Header="🖼️ الصور المطابقة" Grid.Column="2" Style="{StaticResource ModernGroupBoxStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <DataGrid Grid.Row="0" 
+                                  AutoGenerateColumns="False" IsReadOnly="False" 
+                                  CanUserAddRows="False" CanUserResizeColumns="True"
+                                  BorderThickness="1" BorderBrush="{StaticResource BorderColor}"
+                                  Background="White" GridLinesVisibility="Horizontal" 
+                                  HorizontalGridLinesBrush="{StaticResource BorderColor}"
+                                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                  HeadersVisibility="Column" SelectionMode="Single"
+                                  ItemsSource="{Binding MatchedImages}"
+                                  MinHeight="300">
+                            <DataGrid.Resources>
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="Padding" Value="12,8"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="#E3F2FD"/>
+                                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryColor}"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="#F8F9FA"/>
+                                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryColor}"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                                    <Setter Property="Padding" Value="12,10"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                    <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
+                                </Style>
+                            </DataGrid.Resources>
+                            <DataGrid.Columns>
+                                <DataGridCheckBoxColumn Header="نسخ" Binding="{Binding IsSelected}" Width="60" CanUserResize="False"/>
+                                <DataGridTemplateColumn Header="معاينة" Width="120" CanUserResize="True">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate DataType="domain:ImageItem">
+                                            <Border Width="100" Height="80" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
+                                                <Image Source="{Binding FilePath}" Stretch="Uniform" 
+                                                       Cursor="Hand" ToolTip="انقر للفتح">
+                                                    <Image.InputBindings>
+                                                        <MouseBinding Gesture="LeftClick" Command="{Binding DataContext.OpenImageCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
+                                                    </Image.InputBindings>
+                                                </Image>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="الاسم الأصلي" Binding="{Binding OriginalName}" Width="200" CanUserResize="True">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="TextWrapping" Value="NoWrap"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                            <Setter Property="TextAlignment" Value="Right"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="الاسم الجديد" Binding="{Binding NewName}" Width="200" CanUserResize="True">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="TextWrapping" Value="NoWrap"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                            <Setter Property="TextAlignment" Value="Right"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="الحالة" Binding="{Binding Status}" Width="150" CanUserResize="True">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="Medium"/>
+                                            <Setter Property="TextAlignment" Value="Right"/>
+                                            <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Status}" Value="مطابق">
+                                                <Setter Property="Foreground" Value="{StaticResource SuccessColor}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Status}" Value="غير مطابق">
+                                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryColor}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Status}" Value="جاري المعالجة...">
+                                                <Setter Property="Foreground" Value="{StaticResource PrimaryColor}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Status}" Value="خطأ">
+                                                <Setter Property="Foreground" Value="{StaticResource ErrorColor}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Status}" Value="نفاذ الحصة">
+                                                <Setter Property="Foreground" Value="{StaticResource ErrorColor}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Status}" Value="تم النسخ">
+                                                <Setter Property="Foreground" Value="{StaticResource SuccessColor}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <Border Grid.Row="1" Background="{StaticResource SurfaceColor}" BorderBrush="{StaticResource BorderColor}" 
+                                BorderThickness="0,1,0,0" Padding="10" Margin="0,10,0,0">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                <Button Content="📋 نسخ الصور المحددة" Command="{Binding CopySelectedCommand}" 
+                                        Style="{StaticResource ModernButtonStyle}" Margin="0,0,10,0" FontSize="14" Padding="20,10"/>
+                                <Button Content="🗑️ مسح الكل" Command="{Binding ClearListCommand}" 
+                                        Style="{StaticResource SecondaryButtonStyle}"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </GroupBox>
+            </Grid>
         </Grid>
-    </Grid>
+    </ScrollViewer>
 </Page>

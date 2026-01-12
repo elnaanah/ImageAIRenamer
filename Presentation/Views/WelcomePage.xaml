@@ -7,7 +7,7 @@
       Title="Welcome"
       FlowDirection="RightToLeft"
       Background="{StaticResource BackgroundColor}">
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
         <Grid Margin="40">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>

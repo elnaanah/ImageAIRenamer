@@ -8,7 +8,7 @@
       Title="إعادة تسمية الصور"
       FlowDirection="RightToLeft"
       Background="{StaticResource BackgroundColor}">
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Padding="0">
         <Grid x:Name="MainGrid" Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
