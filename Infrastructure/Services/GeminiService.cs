@@ -23,6 +23,10 @@ public class GeminiService : IGeminiService
     private readonly List<string> _exhaustedKeys = new();
     private readonly object _keysLock = new();
 
+    // Rate Limiter fields
+    private readonly SemaphoreSlim _rateLimitLock = new(1, 1);
+    private readonly Dictionary<string, DateTimeOffset> _nextAllowedTimesPerKey = new();
+
     public GeminiService(
         IConfigurationService configurationService,
         ILogger<GeminiService> logger,
@@ -297,6 +301,8 @@ public class GeminiService : IGeminiService
 
     private async Task<string> CallGenerateApiAsync(string apiKey, string imagePath, string? customInstructions, string model, string defaultPrompt, CancellationToken cancellationToken)
     {
+        await WaitForRateLimitAsync(apiKey, cancellationToken);
+
         using var httpClient = _httpClientFactory.CreateClient();
         
         var bytes = await File.ReadAllBytesAsync(imagePath, cancellationToken);
@@ -367,6 +373,8 @@ public class GeminiService : IGeminiService
 
     private async Task<SearchResult> CallSearchApiAsync(string apiKey, string imagePath, string searchDescription, string model, CancellationToken cancellationToken)
     {
+        await WaitForRateLimitAsync(apiKey, cancellationToken);
+
         using var httpClient = _httpClientFactory.CreateClient();
         
         var bytes = await File.ReadAllBytesAsync(imagePath, cancellationToken);
@@ -626,6 +634,37 @@ Return ONLY the JSON object, no other text.";
         ".jpg" or ".jpeg" => "image/jpeg",
         _ => "image/jpeg"
     };
+
+    private async Task WaitForRateLimitAsync(string apiKey, CancellationToken cancellationToken)
+    {
+        var delaySeconds = _configurationService.GetRequestDelaySeconds();
+        TimeSpan waitDuration = TimeSpan.Zero;
+        
+        await _rateLimitLock.WaitAsync(cancellationToken);
+        try
+        {
+            var now = DateTimeOffset.UtcNow;
+            if (!_nextAllowedTimesPerKey.TryGetValue(apiKey, out var nextAllowed))
+            {
+                nextAllowed = DateTimeOffset.MinValue;
+            }
+
+            var scheduledTime = now > nextAllowed ? now : nextAllowed;
+            
+            waitDuration = scheduledTime - now;
+            _nextAllowedTimesPerKey[apiKey] = scheduledTime.AddSeconds(delaySeconds);
+        }
+        finally
+        {
+            _rateLimitLock.Release();
+        }
+
+        if (waitDuration > TimeSpan.Zero)
+        {
+            _logger.LogDebug("Rate limit delay for key: waiting for {TotalMilliseconds}ms", waitDuration.TotalMilliseconds);
+            await Task.Delay(waitDuration, cancellationToken);
+        }
+    }
 }
 
 /// <summary>

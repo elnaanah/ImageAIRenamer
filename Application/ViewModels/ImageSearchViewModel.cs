@@ -188,96 +188,93 @@ public partial class ImageSearchViewModel : ImageProcessingViewModelBase
     private async Task<int> SearchImagesParallelAsync(string[] apiKeysArray, string searchDescription, CancellationToken cancellationToken)
     {
         var usedNames = new ConcurrentDictionary<string, int>();
-        var semaphore = new SemaphoreSlim(apiKeysArray.Length, apiKeysArray.Length);
         int processedCount = 0;
         int matchedCount = 0;
-        var tasks = new List<Task>();
-
-        foreach (var img in MatchedImages)
+        
+        // Create a queue of images to process
+        var queue = new ConcurrentQueue<ImageItem>(MatchedImages);
+        var workers = new List<Task>();
+        
+        // Start a worker for each API key
+        for (int i = 0; i < apiKeysArray.Length; i++)
         {
-            if (cancellationToken.IsCancellationRequested)
-                break;
-
-            var image = img;
-            var task = Task.Run(async () =>
+            int apiKeyIndex = i;
+            var worker = Task.Run(async () =>
             {
-                await semaphore.WaitAsync(cancellationToken);
-                try
+                var geminiServiceWrapper = new GeminiServiceWrapper(_geminiService, apiKeyIndex);
+                
+                while (queue.TryDequeue(out var image))
                 {
                     if (cancellationToken.IsCancellationRequested)
-                        return;
-
-                    var apiKeyIndex = _geminiService.GetNextApiKeyIndex();
-                    var geminiServiceWrapper = new GeminiServiceWrapper(_geminiService, apiKeyIndex);
-
-                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        break;
+                    
+                    try
                     {
-                        image.Status = ImageStatusConstants.Processing;
-                    });
+                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            image.Status = ImageStatusConstants.Processing;
+                        });
 
-                    var result = await _imageProcessingService.ProcessImageForSearchAsync(
-                        image,
-                        searchDescription,
-                        OutputFolder,
-                        usedNames,
-                        geminiServiceWrapper,
-                        _fileService,
-                        cancellationToken);
+                        var result = await _imageProcessingService.ProcessImageForSearchAsync(
+                            image,
+                            searchDescription,
+                            OutputFolder,
+                            usedNames,
+                            geminiServiceWrapper,
+                            _fileService,
+                            cancellationToken);
 
-                    var currentCount = Interlocked.Increment(ref processedCount);
-                    bool isMatch = result.IsMatch;
-                    if (isMatch)
-                    {
-                        Interlocked.Increment(ref matchedCount);
-                    }
-
-                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        image.Status = result.Status;
+                        var currentCount = Interlocked.Increment(ref processedCount);
+                        bool isMatch = result.IsMatch;
                         if (isMatch)
                         {
-                            image.NewName = result.NewFileName ?? string.Empty;
+                            Interlocked.Increment(ref matchedCount);
                         }
-                        else
+
+                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
                         {
-                            image.IsSelected = false;
-                        }
-                        ProgressText = $"جاري المعالجة {currentCount} من {MatchedImages.Count}...";
-                        ProgressValue = currentCount;
-                    });
-                }
-                catch (InvalidOperationException ex) when (ex.Message.Contains("نفاذ"))
-                {
-                    _logger.LogWarning("Quota exceeded while processing image in parallel: {FilePath}", image.FilePath);
-                    var currentCount = Interlocked.Increment(ref processedCount);
-                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                            image.Status = result.Status;
+                            if (isMatch)
+                            {
+                                image.NewName = result.NewFileName ?? string.Empty;
+                            }
+                            else
+                            {
+                                image.IsSelected = false;
+                            }
+                            ProgressText = $"جاري المعالجة {currentCount} من {MatchedImages.Count}...";
+                            ProgressValue = currentCount;
+                        });
+                    }
+                    catch (InvalidOperationException ex) when (ex.Message.Contains("نفاذ"))
                     {
-                        image.Status = ImageStatusConstants.QuotaExceeded;
-                        ProgressText = $"جاري المعالجة {currentCount} من {MatchedImages.Count}...";
-                        ProgressValue = currentCount;
-                    });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error processing image in parallel: {FilePath}", image.FilePath);
-                    var currentCount = Interlocked.Increment(ref processedCount);
-                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        _logger.LogWarning("Quota exceeded while processing image in parallel: {FilePath}", image.FilePath);
+                        var currentCount = Interlocked.Increment(ref processedCount);
+                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            image.Status = ImageStatusConstants.QuotaExceeded;
+                            ProgressText = $"جاري المعالجة {currentCount} من {MatchedImages.Count}...";
+                            ProgressValue = currentCount;
+                        });
+                    }
+                    catch (Exception ex)
                     {
-                        image.Status = ImageStatusConstants.Error;
-                        ProgressText = $"جاري المعالجة {currentCount} من {MatchedImages.Count}...";
-                        ProgressValue = currentCount;
-                    });
-                }
-                finally
-                {
-                    semaphore.Release();
+                        _logger.LogError(ex, "Error processing image in parallel: {FilePath}", image.FilePath);
+                        var currentCount = Interlocked.Increment(ref processedCount);
+                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            image.Status = ImageStatusConstants.Error;
+                            ProgressText = $"جاري المعالجة {currentCount} من {MatchedImages.Count}...";
+                            ProgressValue = currentCount;
+                        });
+                    }
                 }
             }, cancellationToken);
-
-            tasks.Add(task);
+            
+            workers.Add(worker);
         }
 
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(workers);
         return matchedCount;
     }
 

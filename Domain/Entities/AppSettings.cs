@@ -16,6 +16,7 @@ public class GeminiSettings
 {
     public string Model { get; set; } = "gemini-2.0-flash";
     public string DefaultPrompt { get; set; } = string.Empty;
+    public int RequestDelaySeconds { get; set; } = 2;
 }
 
 /// <summary>

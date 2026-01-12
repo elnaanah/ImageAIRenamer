@@ -23,6 +23,11 @@ public interface IConfigurationService
     string GetGeminiModel();
 
     /// <summary>
+    /// Gets the delay between requests in seconds
+    /// </summary>
+    int GetRequestDelaySeconds();
+
+    /// <summary>
     /// Gets supported image file extensions
     /// </summary>
     string[] GetSupportedExtensions();

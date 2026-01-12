@@ -65,6 +65,17 @@ public class ConfigurationService : IConfigurationService
     }
 
     /// <inheritdoc/>
+    public int GetRequestDelaySeconds()
+    {
+        var val = _configuration["Gemini:RequestDelaySeconds"];
+        if (int.TryParse(val, out int result) && result >= 0)
+        {
+            return result;
+        }
+        return 2; // Default delay
+    }
+
+    /// <inheritdoc/>
     public string[] GetSupportedExtensions()
     {
         var extensions = _configuration.GetSection("Application:SupportedExtensions").Get<string[]>();

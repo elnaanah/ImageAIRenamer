@@ -161,85 +161,83 @@ public partial class ImageRenameViewModel : ImageProcessingViewModelBase
     private async Task ProcessImagesParallelAsync(string[] apiKeysArray, string customInstructions, CancellationToken cancellationToken)
     {
         var usedNames = new ConcurrentDictionary<string, int>();
-        var semaphore = new SemaphoreSlim(apiKeysArray.Length, apiKeysArray.Length);
         int processedCount = 0;
-        var tasks = new List<Task>();
-
-        foreach (var img in Images)
+        
+        // Create a queue of images to process
+        var queue = new ConcurrentQueue<ImageItem>(Images);
+        var workers = new List<Task>();
+        
+        // Start a worker for each API key
+        // Each worker gets a dedicated key index
+        for (int i = 0; i < apiKeysArray.Length; i++)
         {
-            if (cancellationToken.IsCancellationRequested)
-                break;
-
-            var image = img;
-            var task = Task.Run(async () =>
+            int apiKeyIndex = i;
+            var worker = Task.Run(async () =>
             {
-                await semaphore.WaitAsync(cancellationToken);
-                try
+                var geminiServiceWrapper = new GeminiServiceWrapper(_geminiService, apiKeyIndex);
+                
+                while (queue.TryDequeue(out var image))
                 {
                     if (cancellationToken.IsCancellationRequested)
-                        return;
+                        break;
 
-                    var apiKeyIndex = _geminiService.GetNextApiKeyIndex();
-                    var geminiServiceWrapper = new GeminiServiceWrapper(_geminiService, apiKeyIndex);
-
-                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    try
                     {
-                        image.Status = ImageStatusConstants.Renaming;
-                    });
-
-                    var result = await _imageProcessingService.ProcessImageForRenameAsync(
-                        image,
-                        OutputFolder,
-                        customInstructions,
-                        usedNames,
-                        geminiServiceWrapper,
-                        _fileService,
-                        cancellationToken);
-
-                    var currentCount = Interlocked.Increment(ref processedCount);
-                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        image.Status = result.Status;
-                        if (result.Success)
+                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
                         {
-                            image.NewName = result.NewFileName ?? string.Empty;
-                        }
-                        ProgressText = $"جاري إعادة التسمية {currentCount} من {Images.Count}...";
-                        ProgressValue = currentCount;
-                    });
-                }
-                catch (InvalidOperationException ex) when (ex.Message.Contains("نفاذ"))
-                {
-                    _logger.LogWarning("Quota exceeded while processing image in parallel: {FilePath}", image.FilePath);
-                    var currentCount = Interlocked.Increment(ref processedCount);
-                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                            image.Status = ImageStatusConstants.Renaming;
+                        });
+
+                        var result = await _imageProcessingService.ProcessImageForRenameAsync(
+                            image,
+                            OutputFolder,
+                            customInstructions,
+                            usedNames,
+                            geminiServiceWrapper,
+                            _fileService,
+                            cancellationToken);
+
+                        var currentCount = Interlocked.Increment(ref processedCount);
+                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            image.Status = result.Status;
+                            if (result.Success)
+                            {
+                                image.NewName = result.NewFileName ?? string.Empty;
+                            }
+                            ProgressText = $"جاري إعادة التسمية {currentCount} من {Images.Count}...";
+                            ProgressValue = currentCount;
+                        });
+                    }
+                    catch (InvalidOperationException ex) when (ex.Message.Contains("نفاذ"))
                     {
-                        image.Status = ImageStatusConstants.QuotaExceeded;
-                        ProgressText = $"جاري إعادة التسمية {currentCount} من {Images.Count}...";
-                        ProgressValue = currentCount;
-                    });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error processing image in parallel: {FilePath}", image.FilePath);
-                    var currentCount = Interlocked.Increment(ref processedCount);
-                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        _logger.LogWarning("Quota exceeded while processing image in parallel: {FilePath}", image.FilePath);
+                        var currentCount = Interlocked.Increment(ref processedCount);
+                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            image.Status = ImageStatusConstants.QuotaExceeded;
+                            ProgressText = $"جاري إعادة التسمية {currentCount} من {Images.Count}...";
+                            ProgressValue = currentCount;
+                        });
+                    }
+                    catch (Exception ex)
                     {
-                        image.Status = ImageStatusConstants.Error;
-                        ProgressText = $"جاري إعادة التسمية {currentCount} من {Images.Count}...";
-                        ProgressValue = currentCount;
-                    });
-                }
-                finally
-                {
-                    semaphore.Release();
+                        _logger.LogError(ex, "Error processing image in parallel: {FilePath}", image.FilePath);
+                        var currentCount = Interlocked.Increment(ref processedCount);
+                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            image.Status = ImageStatusConstants.Error;
+                            ProgressText = $"جاري إعادة التسمية {currentCount} من {Images.Count}...";
+                            ProgressValue = currentCount;
+                        });
+                    }
                 }
             }, cancellationToken);
-
-            tasks.Add(task);
+            
+            workers.Add(worker);
         }
 
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(workers);
     }
 
     private class GeminiServiceWrapper : IGeminiService
