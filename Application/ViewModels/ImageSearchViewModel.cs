@@ -168,6 +168,7 @@ public partial class ImageSearchViewModel : ImageProcessingViewModelBase
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
                 img.Status = result.Status;
+                img.MatchReason = result.MatchReason ?? string.Empty;
                 if (result.IsMatch)
                 {
                     matchedCount++;
@@ -234,6 +235,7 @@ public partial class ImageSearchViewModel : ImageProcessingViewModelBase
                         System.Windows.Application.Current.Dispatcher.Invoke(() =>
                         {
                             image.Status = result.Status;
+                            image.MatchReason = result.MatchReason ?? string.Empty;
                             if (isMatch)
                             {
                                 image.NewName = result.NewFileName ?? string.Empty;

@@ -8,8 +8,7 @@
       Title="إعادة تسمية الصور"
       FlowDirection="RightToLeft"
       Background="{StaticResource BackgroundColor}">
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Padding="0">
-        <Grid x:Name="MainGrid" Margin="20">
+    <Grid x:Name="MainGrid" Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="20"/>
@@ -246,7 +245,11 @@
                               HeadersVisibility="Column" 
                               SelectionMode="Single"
                               ItemsSource="{Binding Images}"
-                              RowHeight="90">
+                              RowHeight="90"
+                              VirtualizingStackPanel.IsVirtualizing="True"
+                              VirtualizingStackPanel.VirtualizationMode="Recycling"
+                              EnableRowVirtualization="True"
+                              EnableColumnVirtualization="False">
                         <DataGrid.Resources>
                             <Style TargetType="DataGridCell">
                                 <Setter Property="Padding" Value="10,6"/>
@@ -342,5 +345,4 @@
                 </GroupBox>
             </Grid>
         </Grid>
-    </ScrollViewer>
 </Page>

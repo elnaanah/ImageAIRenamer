@@ -8,8 +8,7 @@
       Title="البحث عن الصور"
       FlowDirection="RightToLeft"
       Background="{StaticResource BackgroundColor}">
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-        <Grid Margin="40">
+    <Grid Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -24,9 +23,9 @@
 
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" MinWidth="350" MaxWidth="600"/>
-                    <ColumnDefinition Width="30"/>
-                    <ColumnDefinition Width="*" MinWidth="400"/>
+                    <ColumnDefinition Width="*" MinWidth="320" MaxWidth="550"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="*" MinWidth="450"/>
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0">
@@ -182,8 +181,13 @@
                                   VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
                                   HeadersVisibility="Column" SelectionMode="Single"
                                   ItemsSource="{Binding MatchedImages}"
-                                  MinHeight="300">
-                            <DataGrid.Resources>
+                                  MinHeight="300"
+                                  MinWidth="700"
+                                  VirtualizingStackPanel.IsVirtualizing="True"
+                                  VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                  EnableRowVirtualization="True"
+                                  EnableColumnVirtualization="False">
+                                <DataGrid.Resources>
                                 <Style TargetType="DataGridCell">
                                     <Setter Property="Padding" Value="12,8"/>
                                     <Setter Property="VerticalAlignment" Value="Center"/>
@@ -230,15 +234,6 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="الاسم الجديد" Binding="{Binding NewName}" Width="200" CanUserResize="True">
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="TextWrapping" Value="NoWrap"/>
-                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-                                            <Setter Property="TextAlignment" Value="Right"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
                                 <DataGridTextColumn Header="الحالة" Binding="{Binding Status}" Width="150" CanUserResize="True">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -270,6 +265,24 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
+                                <DataGridTextColumn Header="سبب المطابقة" Binding="{Binding MatchReason}" Width="250" CanUserResize="True">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="TextWrapping" Value="Wrap"/>
+                                            <Setter Property="TextAlignment" Value="Right"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                            <Setter Property="ToolTip" Value="{Binding MatchReason}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding MatchReason}" Value="">
+                                                    <Setter Property="Text" Value="-"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding MatchReason}" Value="{x:Null}">
+                                                    <Setter Property="Text" Value="-"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                         <Border Grid.Row="1" Background="{StaticResource SurfaceColor}" BorderBrush="{StaticResource BorderColor}" 
@@ -285,5 +298,4 @@
                 </GroupBox>
             </Grid>
         </Grid>
-    </ScrollViewer>
 </Page>

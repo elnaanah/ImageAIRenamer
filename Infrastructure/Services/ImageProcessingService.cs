@@ -144,7 +144,8 @@ public class ImageProcessingService : IImageProcessingService
                 {
                     IsMatch = true,
                     NewFileName = newFileName,
-                    Status = ImageStatusConstants.Matched
+                    Status = ImageStatusConstants.Matched,
+                    MatchReason = result.Reason
                 };
             }
             else
@@ -152,7 +153,8 @@ public class ImageProcessingService : IImageProcessingService
                 return new ProcessSearchResult
                 {
                     IsMatch = false,
-                    Status = ImageStatusConstants.NotMatched
+                    Status = ImageStatusConstants.NotMatched,
+                    MatchReason = result.Reason
                 };
             }
         }
@@ -281,7 +283,8 @@ public class ImageProcessingService : IImageProcessingService
                 {
                     IsMatch = true,
                     NewFileName = newFileName,
-                    Status = ImageStatusConstants.Matched
+                    Status = ImageStatusConstants.Matched,
+                    MatchReason = result.Reason
                 };
             }
             else
@@ -289,7 +292,8 @@ public class ImageProcessingService : IImageProcessingService
                 return new ProcessSearchResult
                 {
                     IsMatch = false,
-                    Status = ImageStatusConstants.NotMatched
+                    Status = ImageStatusConstants.NotMatched,
+                    MatchReason = result.Reason
                 };
             }
         }

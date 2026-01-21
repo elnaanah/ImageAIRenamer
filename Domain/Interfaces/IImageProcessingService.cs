@@ -57,5 +57,6 @@ public class ProcessSearchResult
     public bool IsMatch { get; set; }
     public string? NewFileName { get; set; }
     public string Status { get; set; } = string.Empty;
+    public string? MatchReason { get; set; }
 }
 

@@ -9,6 +9,7 @@ public class ImageItem : INotifyPropertyChanged
     private string _status = ImageStatusConstants.Pending;
     private string _newName = "";
     private bool _isSelected = true;
+    private string _matchReason = "";
     
     public required string FilePath { get; set; }
     public required string OriginalName { get; set; }
@@ -29,6 +30,12 @@ public class ImageItem : INotifyPropertyChanged
     {
         get => _isSelected;
         set { _isSelected = value; OnPropertyChanged(); }
+    }
+
+    public string MatchReason
+    {
+        get => _matchReason;
+        set { _matchReason = value; OnPropertyChanged(); }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
