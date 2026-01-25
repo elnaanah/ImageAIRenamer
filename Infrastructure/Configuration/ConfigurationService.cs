@@ -83,10 +83,22 @@ public class ConfigurationService : IConfigurationService
     }
 
     /// <summary>
-    /// Gets the default prompt text
+    /// Gets the default prompt text (for backward compatibility)
     /// </summary>
     public string GetDefaultPrompt()
     {
-        return _configuration["Gemini:DefaultPrompt"] ?? string.Empty;
+        return GetRenamePrompt();
+    }
+
+    /// <inheritdoc/>
+    public string GetRenamePrompt()
+    {
+        return _configuration["Gemini:RenamePrompt"] ?? "Extract only the main title or name from this image. Return ONLY the title with no descriptions, explanations, or extra text. If there is readable text like a service name use it exactly. If no clear text exists, generate a short appropriate title. Return only the title.";
+    }
+
+    /// <inheritdoc/>
+    public string GetSearchPrompt()
+    {
+        return _configuration["Gemini:SearchPrompt"] ?? "Analyze this image and extract a filename. You can provide a brief description if needed. If there is readable text in the image (like app name, title, label), use it exactly as the filename. If no clear text exists, generate a short descriptive filename (2-5 words maximum).";
     }
 }

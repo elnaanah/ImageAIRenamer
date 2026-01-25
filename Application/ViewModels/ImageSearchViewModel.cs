@@ -300,6 +300,15 @@ public partial class ImageSearchViewModel : ImageProcessingViewModelBase
             return _service.GenerateTitleAsync(imagePath, customInstructions, cancellationToken);
         }
 
+        public Task<string> GenerateTitleForSearchAsync(string imagePath, CancellationToken cancellationToken = default)
+        {
+            if (_service is Infrastructure.Services.GeminiService gs)
+            {
+                return gs.GenerateTitleForSearchAsync(imagePath, _apiKeyIndex, cancellationToken);
+            }
+            return _service.GenerateTitleForSearchAsync(imagePath, cancellationToken);
+        }
+
         public Task<Domain.Entities.SearchResult> SearchImageAsync(string imagePath, string searchDescription, CancellationToken cancellationToken = default)
         {
             if (_service is Infrastructure.Services.GeminiService gs)

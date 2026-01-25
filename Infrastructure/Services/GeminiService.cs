@@ -95,7 +95,7 @@ public class GeminiService : IGeminiService
         }
 
         var model = _configurationService.GetGeminiModel();
-        var defaultPrompt = ((ConfigurationService)_configurationService).GetDefaultPrompt();
+        var defaultPrompt = ((ConfigurationService)_configurationService).GetRenamePrompt();
 
         if (apiKeyIndex.HasValue)
         {
@@ -187,6 +187,116 @@ public class GeminiService : IGeminiService
                 }
             }
             throw new InvalidOperationException("Failed to generate title.");
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<string> GenerateTitleForSearchAsync(string imagePath, CancellationToken cancellationToken = default)
+    {
+        return await GenerateTitleForSearchAsync(imagePath, null, cancellationToken);
+    }
+
+    public async Task<string> GenerateTitleForSearchAsync(string imagePath, int? apiKeyIndex, CancellationToken cancellationToken = default)
+    {
+        if (_apiKeys.Length == 0)
+        {
+            _logger.LogError("No API keys configured");
+            throw new InvalidOperationException("No API keys provided.");
+        }
+
+        var model = _configurationService.GetGeminiModel();
+        var searchPrompt = ((ConfigurationService)_configurationService).GetSearchPrompt();
+
+        if (apiKeyIndex.HasValue)
+        {
+            int attempts = 0;
+            int maxAttempts = _apiKeys.Length;
+            int currentAttemptIndex = apiKeyIndex.Value;
+
+            while (attempts < maxAttempts)
+            {
+                string apiKey = _apiKeys[currentAttemptIndex % _apiKeys.Length];
+                try
+                {
+                    _logger.LogDebug("Generating title for search for image: {ImagePath} using key index {Index}", imagePath, currentAttemptIndex % _apiKeys.Length);
+                    return await CallGenerateApiAsync(apiKey, imagePath, null, model, searchPrompt, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    string msg = ex.Message.ToLower();
+                    if (msg.Contains("429") || msg.Contains("quota") || msg.Contains("resource_exhausted") || msg.Contains("rate limit") || msg.Contains("نفاذ"))
+                    {
+                        _logger.LogWarning("API key {Index} quota exceeded, rotating to next key", currentAttemptIndex % _apiKeys.Length);
+                        currentAttemptIndex++;
+                        attempts++;
+                        
+                        if (attempts >= maxAttempts)
+                        {
+                            _logger.LogError("All API keys exhausted");
+                            throw new InvalidOperationException(ErrorMessages.QuotaExceeded, ex);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogError(ex, "Error generating title for search for image: {ImagePath}", imagePath);
+                        throw;
+                    }
+                }
+            }
+            throw new InvalidOperationException("Failed to generate title for search.");
+        }
+        else
+        {
+            int maxAttempts = _apiKeys.Length;
+            int attempts = 0;
+            string? usedKey = null;
+
+            while (attempts < maxAttempts)
+            {
+                var apiKey = GetNextAvailableKey();
+                if (apiKey == null)
+                {
+                    _logger.LogError("All API keys exhausted");
+                    throw new InvalidOperationException(ErrorMessages.QuotaExceeded);
+                }
+
+                usedKey = apiKey;
+                var keyIndex = GetKeyIndexInOriginalArray(apiKey);
+
+                try
+                {
+                    _logger.LogDebug("Generating title for search for image: {ImagePath} using key index {Index}", imagePath, keyIndex);
+                    var result = await CallGenerateApiAsync(apiKey, imagePath, null, model, searchPrompt, cancellationToken);
+                    MarkKeyAsSuccessful(apiKey);
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    string msg = ex.Message.ToLower();
+                    if (msg.Contains("429") || msg.Contains("quota") || msg.Contains("resource_exhausted") || msg.Contains("rate limit") || msg.Contains("نفاذ"))
+                    {
+                        _logger.LogWarning("API key {Index} quota exceeded, marking as exhausted", keyIndex);
+                        MarkKeyAsExhausted(apiKey);
+                        attempts++;
+                        
+                        if (attempts >= maxAttempts)
+                        {
+                            _logger.LogError("All API keys exhausted");
+                            throw new InvalidOperationException(ErrorMessages.QuotaExceeded, ex);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogError(ex, "Error generating title for search for image: {ImagePath}", imagePath);
+                        if (usedKey != null)
+                        {
+                            MarkKeyAsSuccessful(usedKey);
+                        }
+                        throw;
+                    }
+                }
+            }
+            throw new InvalidOperationException("Failed to generate title for search.");
         }
     }
 
@@ -383,17 +493,17 @@ public class GeminiService : IGeminiService
 
         var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
 
-        var searchPrompt = $@"Analyze this image and determine if it contains or shows: {searchDescription}
+        var searchPrompt = $@"حلل هذه الصورة وتحديد ما إذا كانت تحتوي على أو تظهر: {searchDescription}
 
-Respond with a JSON object in this exact format:
+أجب بكائن JSON بهذا التنسيق بالضبط:
 {{
-  ""isMatch"": true or false,
-  ""suggestedName"": ""appropriate filename based on image content"",
-  ""reason"": ""brief explanation of why it matches or not""
+  ""isMatch"": true أو false,
+  ""suggestedName"": ""اسم ملف مناسب بناءً على محتوى الصورة"",
+  ""reason"": ""شرح مختصر بالعربية لسبب المطابقة أو عدم المطابقة""
 }}
 
-If the image matches the description, set isMatch to true and generate an appropriate filename. If it doesn't match, set isMatch to false.
-Return ONLY the JSON object, no other text.";
+إذا كانت الصورة تطابق الوصف، ضع isMatch على true وقم بإنشاء اسم ملف مناسب. إذا لم تطابق، ضع isMatch على false.
+أرجع فقط كائن JSON، بدون أي نص آخر. يجب أن يكون حقل reason باللغة العربية.";
 
         var requestBody = new
         {

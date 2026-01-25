@@ -127,7 +127,7 @@ public class ImageProcessingService : IImageProcessingService
 
                 if (string.IsNullOrWhiteSpace(suggestedName))
                 {
-                    suggestedName = await geminiService.GenerateTitleAsync(imageItem.FilePath, cancellationToken: cancellationToken);
+                    suggestedName = await geminiService.GenerateTitleForSearchAsync(imageItem.FilePath, cancellationToken);
                 }
 
                 var sanitized = fileService.SanitizeFilename(suggestedName ?? "صورة");
@@ -266,7 +266,7 @@ public class ImageProcessingService : IImageProcessingService
 
                 if (string.IsNullOrWhiteSpace(suggestedName))
                 {
-                    suggestedName = await geminiService.GenerateTitleAsync(imageItem.FilePath, cancellationToken: cancellationToken);
+                    suggestedName = await geminiService.GenerateTitleForSearchAsync(imageItem.FilePath, cancellationToken);
                 }
 
                 var sanitized = fileService.SanitizeFilename(suggestedName ?? "صورة");

@@ -6,13 +6,21 @@ namespace ImageAIRenamer.Domain.Interfaces;
 public interface IGeminiService
 {
     /// <summary>
-    /// Generates a title/name for an image using AI
+    /// Generates a title/name for an image using AI (for renaming)
     /// </summary>
     /// <param name="imagePath">Path to the image file</param>
     /// <param name="customInstructions">Optional custom instructions for the AI</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The generated title</returns>
     Task<string> GenerateTitleAsync(string imagePath, string? customInstructions = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Generates a title/name for an image using AI (for search - allows descriptions)
+    /// </summary>
+    /// <param name="imagePath">Path to the image file</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The generated title</returns>
+    Task<string> GenerateTitleForSearchAsync(string imagePath, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Searches for images matching a description

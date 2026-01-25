@@ -31,4 +31,14 @@ public interface IConfigurationService
     /// Gets supported image file extensions
     /// </summary>
     string[] GetSupportedExtensions();
+
+    /// <summary>
+    /// Gets the prompt for image renaming
+    /// </summary>
+    string GetRenamePrompt();
+
+    /// <summary>
+    /// Gets the prompt for image search
+    /// </summary>
+    string GetSearchPrompt();
 }
