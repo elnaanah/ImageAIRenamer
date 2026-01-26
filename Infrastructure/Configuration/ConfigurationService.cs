@@ -87,7 +87,7 @@ public class ConfigurationService : IConfigurationService
     /// </summary>
     public string GetDefaultPrompt()
     {
-        return GetRenamePrompt();
+        return _configuration["Gemini:DefaultPrompt"] ?? string.Empty;
     }
 
     /// <inheritdoc/>
